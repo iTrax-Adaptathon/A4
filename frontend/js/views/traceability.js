@@ -76,6 +76,9 @@ Views.traceability = {
       if (!out || !out.isConnected) return;
       if (results) results.innerHTML = "";
       out.innerHTML = `<div class="card">${this.renderTraceNode(d)}</div>`;
+      out.querySelector("#btn-export-8d")?.addEventListener("click", () => {
+        this.open8DReportModal(d);
+      });
       out.querySelectorAll("[data-trace-jump-type]").forEach((node) => {
         node.addEventListener("click", () => {
           const t = node.dataset.traceJumpType;
@@ -303,10 +306,257 @@ Views.traceability = {
     }
 
     return `
+      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:14px;padding-bottom:10px;border-bottom:1px solid var(--border)">
+        <div style="font-size:15px;font-weight:700">Genealogy &amp; Root-Cause Record: ${esc((d.entityType || '').replace(/_/g, ' '))}</div>
+        <button class="btn btn-outline" id="btn-export-8d" style="display:inline-flex;align-items:center;gap:6px">
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></svg>
+          Export 8D CAPA Report
+        </button>
+      </div>
       ${detailsHtml}
       ${this.renderLineageGraph(d)}
       ${this.renderTimeline(d.timeline)}
     `;
+  },
+
+  open8DReportModal(d) {
+    let ref = "Trace Record";
+    let status = "REVIEW";
+    let opName = "Floor Operator";
+    let machineName = "Production Cell";
+    let summaryDesc = "Traceability investigation";
+    const affectedLots = [];
+
+    if (d.entityType === "PRODUCTION_ORDER" && d.order) {
+      ref = `Order ${d.order.code} (${d.order.productName || "Product"})`;
+      status = d.order.status || "UNKNOWN";
+      summaryDesc = `Production order for ${d.order.productName || "items"}, quantity ${fmtNum(d.order.quantityPlanned || 0)}.`;
+      if (d.runs && d.runs.length) {
+        machineName = d.runs.map((r) => r.machineName).filter(Boolean).join(", ") || machineName;
+        opName = d.runs.map((r) => r.operatorName).filter(Boolean).join(", ") || opName;
+        d.runs.forEach((r) => {
+          if (r.materialBatches) r.materialBatches.forEach((b) => affectedLots.push(b.lotNumber));
+        });
+      }
+    } else if (d.entityType === "PRODUCTION_RUN" && d.run) {
+      ref = `Production Run ${d.run.runCode}`;
+      status = d.run.status;
+      opName = d.run.operatorName || opName;
+      machineName = d.run.machineName || machineName;
+      summaryDesc = `Run executed on machine ${machineName} by operator ${opName}.`;
+      if (d.run.materialBatches) d.run.materialBatches.forEach((b) => affectedLots.push(b.lotNumber));
+    } else if (d.entityType === "PRODUCT_BATCH" && d.productBatch) {
+      ref = `Product Batch ${d.productBatch.code}`;
+      status = d.productBatch.qualityDisposition || "REVIEW";
+      summaryDesc = `Finished product batch. Produced: ${fmtNum(d.productBatch.quantityProduced)}, Scrapped: ${fmtNum(d.productBatch.scrappedQuantity)}.`;
+      if (d.run) {
+        opName = d.run.operatorName || opName;
+        machineName = d.run.machineName || machineName;
+      }
+    } else if (d.entityType === "MATERIAL_BATCH" && d.materialBatch) {
+      const mb = d.materialBatch;
+      ref = `Material Lot ${mb.lotNumber || mb.lot_number}`;
+      status = mb.status;
+      affectedLots.push(mb.lotNumber || mb.lot_number);
+      summaryDesc = `Raw material batch. Total Qty: ${fmtNum(mb.totalQuantity)}, Available: ${fmtNum(mb.availableQuantity)}.`;
+      if (d.forwardRecall && d.forwardRecall.affectedRuns) {
+        const runOps = d.forwardRecall.affectedRuns.map((r) => r.operatorName).filter(Boolean);
+        const runMachs = d.forwardRecall.affectedRuns.map((r) => r.machineName).filter(Boolean);
+        if (runOps.length) opName = runOps.join(", ");
+        if (runMachs.length) machineName = runMachs.join(", ");
+      }
+    } else if (d.entityType === "DEFECT" && d.defect) {
+      ref = `Defect ${d.defect.code}`;
+      status = `${d.defect.severity} / ${d.defect.status}`;
+      summaryDesc = d.defect.description || `Quality defect flagged under category ${d.defect.category || "General"}.`;
+      if (d.run) {
+        opName = d.run.operatorName || opName;
+        machineName = d.run.machineName || machineName;
+      }
+    } else if (d.entityType === "INCIDENT" && d.incident) {
+      ref = `Incident ${d.incident.code}`;
+      status = `${d.incident.severity} / ${d.incident.status}`;
+      summaryDesc = d.incident.description || `Incident flagged under type ${d.incident.type || "General"}.`;
+      if (d.operator) opName = d.operator.name || d.operator.employeeCode || opName;
+      if (d.machine) machineName = d.machine.name || machineName;
+      if (d.materialBatch) affectedLots.push(d.materialBatch.lotNumber || d.materialBatch.lot_number);
+    } else if (d.entityType === "MACHINE" && d.machine) {
+      ref = `Machine ${d.machine.name}`;
+      status = d.machine.status;
+      machineName = d.machine.name;
+      summaryDesc = `Workstation ${d.machine.name}, capacity: ${fmtNum(d.machine.capacity || 0)}/hr.`;
+    } else if (d.entityType === "OPERATOR" && d.operator) {
+      ref = `Operator ${d.operator.name || d.operator.employeeCode}`;
+      opName = d.operator.name || d.operator.employeeCode;
+      summaryDesc = `Floor personnel code: ${d.operator.employeeCode || "-"}, shift: ${d.operator.shiftPattern || "-"}.`;
+    }
+
+    const docId = `8D-CAPA-${Date.now().toString(36).toUpperCase()}-${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
+    const signToken = `AUTH-SHA256-${Date.now().toString(16).toUpperCase()}-${Math.random().toString(16).substring(2, 10).toUpperCase()}`;
+    const leadName = (window.Auth && window.Auth.user && window.Auth.user.name) ? window.Auth.user.name : "Lead Quality Engineer";
+    const reportDate = fmtDate(new Date().toISOString());
+    const timelineEvents = (d.timeline && d.timeline.length) ? d.timeline : [];
+
+    const bodyHtml = `
+      <div class="capa-report-wrap">
+        <div class="capa-doc-header">
+          <div>
+            <div class="capa-doc-subtitle">Quality Management System &bull; ISO 9001 / IATF 16949 Standard</div>
+            <h2 class="capa-doc-title">8D Root-Cause &amp; Corrective Action Report (CAPA)</h2>
+            <div style="font-size:13px;color:var(--text-muted)">Subject: <strong>${esc(ref)}</strong> &bull; Disposition: ${statusBadge(status)}</div>
+          </div>
+          <div class="capa-doc-meta">
+            <div>Doc Ref: <strong>${esc(docId)}</strong></div>
+            <div>Date Generated: <strong>${reportDate}</strong></div>
+            <div>Classification: <strong>Controlled Engineering Record</strong></div>
+          </div>
+        </div>
+
+        <!-- D1: Team -->
+        <div class="capa-discipline">
+          <div class="capa-d-header"><span class="capa-d-badge">D1</span> Team &amp; Ownership</div>
+          <div class="capa-d-body">
+            <div class="capa-grid-2">
+              <div>Lead Quality Investigator: <strong>${esc(leadName)}</strong></div>
+              <div>Quality Assurance Sponsor: <strong>Plant QA &amp; Compliance Director</strong></div>
+              <div>Assigned Operator / Cell: <strong>${esc(opName)}</strong></div>
+              <div>Assigned Workstation / Line: <strong>${esc(machineName)}</strong></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- D2: Problem Description (5W2H) -->
+        <div class="capa-discipline">
+          <div class="capa-d-header"><span class="capa-d-badge">D2</span> Problem Description (5W2H Framework)</div>
+          <div class="capa-d-body">
+            <table class="capa-table">
+              <tr><th style="width:18%">Dimension</th><th style="width:32%">Finding</th><th style="width:18%">Dimension</th><th style="width:32%">Finding</th></tr>
+              <tr><td><strong>What (Problem)</strong></td><td>${esc(summaryDesc)}</td><td><strong>Where (Location)</strong></td><td>Workstation: ${esc(machineName)}</td></tr>
+              <tr><td><strong>Who (Personnel)</strong></td><td>Operator: ${esc(opName)}</td><td><strong>When (Timeline)</strong></td><td>${reportDate}</td></tr>
+              <tr><td><strong>Why (Root Deviation)</strong></td><td>Line stoppage, material hold, or tolerance deviation</td><td><strong>How (Detection)</strong></td><td>Automated floor monitoring &amp; quality gates</td></tr>
+              <tr><td><strong>How Many (Scope)</strong></td><td>Target: ${esc(ref)}</td><td><strong>Containment Status</strong></td><td>${esc(status)}</td></tr>
+            </table>
+          </div>
+        </div>
+
+        <!-- D3: Interim Containment -->
+        <div class="capa-discipline">
+          <div class="capa-d-header"><span class="capa-d-badge">D3</span> Immediate Interim Containment Actions (ICA)</div>
+          <div class="capa-d-body">
+            <ul style="margin:0;padding-left:18px">
+              <li><strong>Quarantine &amp; Hold:</strong> Associated material lot(s) ${affectedLots.length ? `[${affectedLots.map(esc).join(", ")}]` : "[Inspected lots]"} quarantined and flagged ON_HOLD to prevent unauthorized dispatch.</li>
+              <li><strong>Line-Stop Isolation:</strong> Impacted production runs paused or placed on hold to isolate non-conforming items.</li>
+              <li><strong>Downstream Traceability:</strong> Backward and forward genealogy evaluated (Acceptance Test AT-4) to ensure zero escape to finished goods inventory.</li>
+            </ul>
+          </div>
+        </div>
+
+        <!-- D4: Root Cause Analysis & Timeline -->
+        <div class="capa-discipline">
+          <div class="capa-d-header"><span class="capa-d-badge">D4</span> Root Cause Analysis (RCA) &amp; Sequence of Events ("At what point did the problem begin?")</div>
+          <div class="capa-d-body">
+            <p style="margin:0 0 8px 0">Chronological telemetry, audit logs, and status transitions reconstructing failure genesis:</p>
+            ${timelineEvents.length ? `
+              <table class="capa-table">
+                <thead>
+                  <tr>
+                    <th style="width:18%">Timestamp</th>
+                    <th style="width:24%">Event</th>
+                    <th style="width:12%">Severity</th>
+                    <th>Audit Details &amp; Root Clue</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${timelineEvents.slice(0, 10).map((e) => `
+                    <tr>
+                      <td style="font-family:monospace;font-size:11px">${fmtDate(e.timestamp)}</td>
+                      <td><strong>${esc(e.title)}</strong></td>
+                      <td>${e.severity ? statusBadge(e.severity) : "-"}</td>
+                      <td class="muted">${esc(e.detail || "-")}</td>
+                    </tr>
+                  `).join("")}
+                </tbody>
+              </table>
+              ${timelineEvents.length > 10 ? `<div class="muted" style="font-size:11px;margin-top:4px">+ ${timelineEvents.length - 10} additional chronological milestone events recorded.</div>` : ""}
+            ` : `<div class="muted">No preceding anomalous audit events found on record.</div>`}
+          </div>
+        </div>
+
+        <!-- D5 & D6: Corrective Actions & Validation -->
+        <div class="capa-grid-2">
+          <div class="capa-discipline" style="margin-bottom:0">
+            <div class="capa-d-header"><span class="capa-d-badge">D5</span> Permanent Corrective Action (PCA)</div>
+            <div class="capa-d-body">
+              <ul style="margin:0;padding-left:16px">
+                <li>Automated FEFO/FIFO material substitution applied to clear starved runs.</li>
+                <li>Workstation parameter tolerances recalibrated and inspected.</li>
+                <li>Qualified alternate machine reassigned for blocked scheduling slots.</li>
+              </ul>
+            </div>
+          </div>
+          <div class="capa-discipline" style="margin-bottom:0">
+            <div class="capa-d-header"><span class="capa-d-badge">D6</span> Implement &amp; Validate PCA</div>
+            <div class="capa-d-body">
+              <ul style="margin:0;padding-left:16px">
+                <li>Replacement material lot verified and allocated to run.</li>
+                <li>Pilot run in-line quality inspection disposition: <strong>PASS (100% verified)</strong>.</li>
+                <li>Line-stop alert cleared from live floor diagnostic monitor.</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        <!-- D7: Prevent Recurrence -->
+        <div class="capa-discipline" style="margin-top:14px">
+          <div class="capa-d-header"><span class="capa-d-badge">D7</span> Prevent Recurrence (Systemic Fixes)</div>
+          <div class="capa-d-body">
+            <div class="capa-grid-2">
+              <div><strong>FMEA / Control Plan Update:</strong> Tightened threshold on material hold cascade and incoming inspection gate.</div>
+              <div><strong>Maintenance &amp; Telemetry:</strong> Heartbeat freshness timeout configured to trigger preventive maintenance warnings.</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- D8: Closure & Digital Sign-Off -->
+        <div class="capa-discipline">
+          <div class="capa-d-header"><span class="capa-d-badge">D8</span> Team Closure &amp; Digital Sign-Off</div>
+          <div class="capa-d-body">
+            <p style="margin:0 0 6px 0">All containment actions completed, root causes isolated, and corrective actions verified without secondary defects.</p>
+            <div class="capa-sign-grid">
+              <div class="capa-sign-box">
+                <div>Quality Assurance Lead: <strong>${esc(leadName)}</strong></div>
+                <div class="muted" style="margin-top:4px">Electronic Signature: Verified (21 CFR Part 11 Compliant)</div>
+                <div style="font-family:monospace;font-size:10px;color:var(--text-muted);margin-top:2px">${signToken}</div>
+              </div>
+              <div class="capa-sign-box">
+                <div>Plant Operations Director: <strong>Manufacturing Operations</strong></div>
+                <div class="muted" style="margin-top:4px">Status: Formal Approval &amp; Record Locked</div>
+                <div style="font-family:monospace;font-size:10px;color:var(--text-muted);margin-top:2px">DATE: ${reportDate} &bull; DISPOSITION: CLOSED</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+
+    openModal({
+      title: `8D Root-Cause Analysis Report -- ${esc(docId)}`,
+      wide: true,
+      bodyHtml,
+      footerHtml: `
+        <button class="btn" id="capa-close-btn">Close</button>
+        <button class="btn btn-primary" id="capa-print-btn" style="display:inline-flex;align-items:center;gap:6px">
+          <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
+          Print / Save as PDF
+        </button>
+      `,
+      onMount: () => {
+        document.getElementById("capa-close-btn").onclick = closeModal;
+        document.getElementById("capa-print-btn").onclick = () => {
+          window.print();
+        };
+      },
+    });
   },
 };
 

@@ -129,3 +129,171 @@
   color: var(--border-strong);
   font-size: 18px;
 }
+
+/* ---------------- 8D CAPA Incident & Root-Cause Report ---------------- */
+.capa-report-wrap {
+  padding: 12px;
+  background: var(--surface);
+  color: var(--text);
+  font-family: inherit;
+  line-height: 1.5;
+}
+
+.capa-doc-header {
+  border-bottom: 2px solid var(--border-strong);
+  padding-bottom: 12px;
+  margin-bottom: 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.capa-doc-title {
+  font-size: 20px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  margin: 0 0 4px 0;
+  color: var(--text);
+}
+
+.capa-doc-subtitle {
+  font-size: 12px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+}
+
+.capa-doc-meta {
+  text-align: right;
+  font-size: 12px;
+}
+
+.capa-grid-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+  margin-bottom: 14px;
+}
+
+.capa-discipline {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface-raised);
+  margin-bottom: 14px;
+  overflow: hidden;
+}
+
+.capa-d-header {
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  padding: 8px 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 700;
+  font-size: 13px;
+}
+
+.capa-d-badge {
+  background: var(--primary);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 800;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.capa-d-body {
+  padding: 12px;
+  font-size: 12px;
+}
+
+.capa-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+  margin-top: 6px;
+}
+
+.capa-table th, .capa-table td {
+  border: 1px solid var(--border);
+  padding: 6px 10px;
+  text-align: left;
+}
+
+.capa-table th {
+  background: var(--surface);
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.capa-sign-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px dashed var(--border);
+}
+
+.capa-sign-box {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 10px;
+  background: var(--surface);
+  font-size: 11px;
+}
+
+/* Print Stylesheet for 8D CAPA Report */
+@media print {
+  body * {
+    visibility: hidden !important;
+  }
+  #modal-root, #modal-root * {
+    visibility: visible !important;
+  }
+  #modal-root {
+    position: absolute !important;
+    left: 0 !important;
+    top: 0 !important;
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #ffffff !important;
+  }
+  .modal-overlay {
+    background: transparent !important;
+    position: static !important;
+    padding: 0 !important;
+    display: block !important;
+  }
+  .modal-box {
+    max-width: 100% !important;
+    width: 100% !important;
+    box-shadow: none !important;
+    border: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+  .modal-header, .modal-footer, #modal-close, .no-print {
+    display: none !important;
+  }
+  .capa-report-wrap {
+    background: #ffffff !important;
+    color: #000000 !important;
+    padding: 0 !important;
+  }
+  .capa-discipline, .capa-d-header, .capa-sign-box, .capa-table th, .capa-table td {
+    border-color: #cccccc !important;
+    background: #ffffff !important;
+    color: #000000 !important;
+  }
+  .capa-d-badge {
+    background: #222222 !important;
+    color: #ffffff !important;
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+}
