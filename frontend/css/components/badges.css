@@ -1,0 +1,12 @@
+/* ---------------- Badges ---------------- */
+.badge {
+  display: inline-block; padding: 2px 9px; border-radius: 100px; font-size: 11px; font-weight: 700;
+  letter-spacing: 0.2px; white-space: nowrap;
+}
+.badge-gray { background: #eef0f4; color: #566; }
+.badge-green { background: var(--success-light); color: var(--success); }
+.badge-red { background: var(--danger-light); color: var(--danger); }
+.badge-yellow { background: var(--warning-light); color: var(--warning); }
+.badge-blue { background: var(--info-light); color: var(--info); }
+.badge-primary { background: var(--primary-light); color: var(--primary-dark); }
+.badge-dot { position: absolute; top: 2px; right: 2px; width: 8px; height: 8px; border-radius: 50%; background: var(--danger); }

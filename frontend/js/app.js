@@ -174,7 +174,7 @@ const App = {
   },
 
   ROUTES: {
-    "dashboard": () => App.renderDashboard(),
+    "dashboard": () => (Views.dashboard ? Views.dashboard.render() : App.renderDashboard()),
     "users": () => Views.admin.users(),
     "roles": () => Views.admin.roles(),
     "orders": () => Views.production.orders(),
@@ -194,7 +194,7 @@ const App = {
     "risks": () => Views.monitoring.risks(),
     "incidents": () => Views.monitoring.incidents(),
     "overrides": () => Views.monitoring.overrides(),
-    "traceability": () => Views.monitoring.traceability(),
+    "traceability": () => (Views.traceability ? Views.traceability.traceability() : Views.monitoring.traceability()),
     "maintenance": () => Views.resources.maintenance(),
     "reports": () => Views.admin.reports(),
     "audit-logs": () => Views.admin.auditLogs(),

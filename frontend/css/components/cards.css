@@ -1,0 +1,26 @@
+/* ---------------- Cards & Surfaces ---------------- */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 16px;
+  margin-bottom: 16px;
+}
+.card h3 { font-size: 14px; margin-bottom: 12px; }
+
+.kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin-bottom: 18px; }
+.kpi-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); padding: 14px 16px; }
+.kpi-card .kpi-value { font-size: 24px; font-weight: 700; }
+.kpi-card .kpi-label { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+.kpi-card.accent-danger .kpi-value { color: var(--danger); }
+.kpi-card.accent-warning .kpi-value { color: var(--warning); }
+.kpi-card.accent-success .kpi-value { color: var(--success); }
+.kpi-card.accent-info .kpi-value { color: var(--info); }
+
+.kv-list { display: grid; grid-template-columns: 140px 1fr; gap: 6px 12px; font-size: 13px; }
+.kv-list dt { color: var(--text-muted); }
+.kv-list dd { margin: 0; }
+
+.risk-bar-track { width: 100%; height: 8px; background: #eef0f4; border-radius: 6px; overflow: hidden; }
+.risk-bar-fill { height: 100%; border-radius: 6px; }

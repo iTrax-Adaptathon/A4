@@ -1,0 +1,19 @@
+/* ---------------- Traceability View ---------------- */
+.trace-tree { font-size: 13px; }
+.trace-node {
+  margin-left: 18px;
+  padding: 8px 0 8px 14px;
+  border-left: 2px solid var(--border);
+}
+.trace-search-form { display: flex; gap: 8px; align-items: stretch; }
+.trace-search-form input {
+  flex: 1;
+  min-width: 0;
+  padding: 9px 11px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font: inherit;
+}
+@media (max-width: 560px) {
+  .trace-search-form { flex-direction: column; }
+}

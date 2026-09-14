@@ -1,0 +1,44 @@
+/* ---------------- Event Timeline & Root-Cause Sequence ---------------- */
+.timeline-container {
+  margin-top: 14px;
+  border-left: 3px solid var(--border, #e2e8f0);
+  padding-left: 16px;
+  position: relative;
+}
+
+.timeline-item {
+  margin-bottom: 14px;
+  position: relative;
+}
+
+.timeline-item .timeline-dot {
+  position: absolute;
+  left: -22px;
+  top: 4px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  box-shadow: 0 0 0 2px var(--surface, #ffffff);
+}
+.timeline-item .timeline-dot.critical { background: var(--danger); }
+.timeline-item .timeline-dot.high { background: var(--warning); }
+.timeline-item .timeline-dot.info { background: var(--primary); }
+.timeline-item .timeline-dot.low { background: var(--info); }
+
+.timeline-item .timeline-meta {
+  font-size: 0.8em;
+  color: var(--text-muted, #718096);
+  font-weight: 500;
+}
+
+.timeline-item .timeline-title {
+  font-weight: 600;
+  margin-top: 2px;
+  font-size: 0.95em;
+}
+
+.timeline-item .timeline-detail {
+  font-size: 0.88em;
+  color: var(--text, #2d3748);
+  margin-top: 2px;
+}

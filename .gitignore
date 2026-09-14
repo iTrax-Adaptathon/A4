@@ -1,0 +1,28 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+backend/.venv/
+.venv/
+env/
+venv/
+ENV/
+
+# SQLite WAL and SHM files
+backend/data/*.db-shm
+backend/data/*.db-wal
+
+# Environment files
+.env
+backend/.env
+
+# IDE / Editor
+.idea/
+*.swp
+*.swo
+
+# Operating System
+.DS_Store
+Thumbs.db
