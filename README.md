@@ -99,22 +99,45 @@ not just a UI mockup:
   machines/slots on conflict.
 - **Multi-batch material allocation** — FEFO/FIFO allocation can split a
   single requirement across several batches automatically.
+- **Operator & Material Live Status** — real-time floor monitoring tracking
+  machines, runs, operator shift assignments, and material hold statuses.
 - **RBAC** — 6 roles mapped to ~35 granular permissions, enforced on every
   API endpoint.
-- **Risk engine** — configurable per-category risk scoring with automatic
-  run hold on critical machine-fault/quality/deadline-miss combinations.
-- **Traceability** — full forward/backward genealogy across runs, batches,
-  and orders for recall scenarios.
+- **Risk engine & hold cascades** — configurable per-category risk scoring with automatic
+  run hold cascades when dependent material batches are placed on hold.
+- **Traceability Explorer & Root-Cause Timeline** — full forward/backward genealogy
+  across runs, batches, and orders with operator attribution and a chronological
+  event timeline answering *"At what point did the problem begin?"*.
 - **Audit log** — append-only, SHA-256 hash-chained, with an integrity
   verification endpoint (no update/delete code path exists anywhere for it).
 - **Alert escalation & live-data staleness** — background jobs enforce
   per-severity SLA escalation and flag stale machine/run heartbeats.
+- **Automated Test Suite & CI** — full regression suite in `backend/tests/`
+  with automated GitHub Actions CI testing on Python 3.11 and 3.12.
+
+## Testing & CI
+
+Run the automated test suite locally:
+
+```bash
+cd backend
+# Windows:
+.\.venv\Scripts\python.exe -m unittest discover -s tests -v
+
+# Linux / macOS:
+./.venv/bin/python -m unittest discover -s tests -v
+```
+
+Automated continuous integration is preconfigured via `.github/workflows/ci.yml`,
+running the test suite against Python 3.11 and 3.12 with dependency caching on
+every push and pull request.
 
 ## Project layout
 
 ```
 pcts/
 ├── start.sh / start.bat      One-command launchers
+├── .github/workflows/ci.yml  Automated GitHub Actions CI test workflow
 ├── .vscode/                  VS Code run/debug configuration
 ├── backend/
 │   ├── app/
@@ -128,12 +151,21 @@ pcts/
 │   │   ├── background.py     Staleness / escalation / risk background loop
 │   │   ├── seed.py           Demo data seeding
 │   │   └── routers/          One router per functional area
+│   ├── tests/                Automated test suite (scheduling, traceability, risk holds)
 │   ├── data/                 SQLite database (created on first run)
 │   └── requirements.txt
 └── frontend/
-    ├── index.html
-    ├── css/style.css
-    └── js/                   api.js, utils.js, app.js, views_*.js
+    ├── index.html            Application entry point
+    ├── css/
+    │   ├── style.css         Master stylesheet bundle
+    │   ├── base/             variables.css, layout.css
+    │   ├── components/       badges, buttons, cards, forms, modal, tables, timeline, toast
+    │   └── views/            login.css, traceability.css
+    └── js/
+        ├── app.js            Application lifecycle, navigation & SPA router
+        ├── core/             api.js (fetch client), auth.js (RBAC), utils.js (helpers)
+        ├── components/       modal.js (dialogs), table.js (tables/badges), toast.js (alerts)
+        └── views/            admin, dashboard, monitoring, production, quality, resources, traceability
 ```
 
 ## Notes
