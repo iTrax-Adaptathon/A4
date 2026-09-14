@@ -330,6 +330,8 @@ Views.production = {
       <div id="sched-result"></div>
     `;
     this._orders = ordersResp.items;
+    this._machines = machinesResp.items;
+    this._operators = operatorsResp.items;
     const orderSelect = document.getElementById("sched-order");
     orderSelect.innerHTML = optionList(this._orders, "id", (o) => `${o.code} -- ${o.productName} (${fmtNum(o.quantityOrdered, 0)})`);
     const processesResp = await Api.get("/v1/processes");
@@ -414,14 +416,122 @@ Views.production = {
     } else {
       el.innerHTML = `
         <div class="card" style="border-left:4px solid var(--danger)">
-          <h3>409 Conflict -- ${esc(conflict.code)}</h3>
-          <p>${esc(conflict.message)}</p>
-          ${conflict.details && conflict.details.length ? `<pre style="background:var(--surface-raised);border:1px solid var(--border);color:var(--text);padding:10px;border-radius:var(--radius-sm);font-size:12px;overflow-x:auto">${esc(JSON.stringify(conflict.details, null, 2))}</pre>` : ""}
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
+            <span style="font-size:22px">&#9888;&#65039;</span>
+            <div>
+              <h3 style="margin:0;color:var(--danger)">Scheduling Conflict (409) -- ${esc(conflict.code)}</h3>
+              <p style="margin:2px 0 0 0;font-size:13.5px">${esc(conflict.message)}</p>
+            </div>
+          </div>
+          ${conflict.details && conflict.details.length ? `
+            <div style="margin:10px 0;padding:10px 14px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);font-size:12.5px">
+              ${conflict.details.map((d) => `<div>&bull; <strong>Conflict:</strong> ${esc(d.conflictType || 'COLLISION')} ${d.resourceType ? `(${esc(d.resourceType)})` : ''} ${d.resourceId ? `ID: ${esc(d.resourceId)}` : ''} ${d.existingRunId ? `[Blocked by active Run: ${esc(d.existingRunId)}]` : ''}</div>`).join('')}
+            </div>` : ""}
           ${conflict.alternatives && conflict.alternatives.length ? `
-            <div class="section-divider">Suggested Alternatives (Section 23.3)</div>
-            ${conflict.alternatives.map((a) => `<div class="badge badge-yellow" style="margin-right:6px">${esc(JSON.stringify(a))}</div>`).join("")}
+            <div class="section-divider" style="color:var(--primary);font-weight:700">1-Click Recommended Conflict Resolutions (Section 23.3)</div>
+            <p class="flow-note" style="margin-bottom:12px">Select an alternative to automatically apply it to your scheduling request:</p>
+            <div class="alternatives-container" style="display:flex;flex-direction:column;gap:10px">
+              ${conflict.alternatives.map((a) => {
+                if (a.type === "ALTERNATE_MACHINE") {
+                  return `
+                    <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 14px;background:var(--surface);border:1px solid var(--border);border-left:4px solid var(--primary);border-radius:var(--radius-sm);flex-wrap:wrap;gap:10px">
+                      <div>
+                        <div style="font-weight:600;color:var(--text)">Equivalent Qualified Machine Available</div>
+                        <div style="font-size:13px;color:var(--text-muted);margin-top:2px">
+                          Machine <strong>${esc(a.machineName || a.machineId)}</strong> is idle and certified for this step.
+                        </div>
+                      </div>
+                      <button class="btn btn-sm btn-primary" data-apply-alt="machine" data-val="${esc(a.machineId)}">
+                        Switch to Machine ${esc(a.machineName || a.machineId)} &rarr;
+                      </button>
+                    </div>`;
+                }
+                if (a.type === "ALTERNATE_SLOT") {
+                  return `
+                    <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 14px;background:var(--surface);border:1px solid var(--border);border-left:4px solid var(--accent);border-radius:var(--radius-sm);flex-wrap:wrap;gap:10px">
+                      <div>
+                        <div style="font-weight:600;color:var(--text)">Next Available Time Window</div>
+                        <div style="font-size:13px;color:var(--text-muted);margin-top:2px">
+                          Current machine is available starting <strong>${fmtDate(a.availableFrom)}</strong>.
+                        </div>
+                      </div>
+                      <button class="btn btn-sm btn-secondary" data-apply-alt="slot" data-val="${esc(a.availableFrom)}">
+                        Shift to Slot (${fmtDate(a.availableFrom)}) &rarr;
+                      </button>
+                    </div>`;
+                }
+                if (a.type === "ALTERNATE_OPERATOR") {
+                  const op = (this._operators || []).find((o) => o.id === a.operatorId);
+                  const opName = op ? (op.name || op.employeeCode) : a.operatorId;
+                  return `
+                    <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 14px;background:var(--surface);border:1px solid var(--border);border-left:4px solid var(--success);border-radius:var(--radius-sm);flex-wrap:wrap;gap:10px">
+                      <div>
+                        <div style="font-weight:600;color:var(--text)">Certified Alternative Operator</div>
+                        <div style="font-size:13px;color:var(--text-muted);margin-top:2px">
+                          Operator <strong>${esc(opName)}</strong> has required certifications and no booking collision.
+                        </div>
+                      </div>
+                      <button class="btn btn-sm btn-primary" data-apply-alt="operator" data-val="${esc(a.operatorId)}">
+                        Assign Operator ${esc(opName)} &rarr;
+                      </button>
+                    </div>`;
+                }
+                return `<div class="badge badge-yellow">${esc(JSON.stringify(a))}</div>`;
+              }).join("")}
+            </div>
           ` : ""}
         </div>`;
+
+      // Attach click listeners for actionable conflict resolutions
+      el.querySelectorAll("[data-apply-alt]").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          const kind = btn.dataset.applyAlt;
+          const val = btn.dataset.val;
+          const form = document.getElementById("sched-form");
+          if (!form) return;
+
+          if (kind === "machine") {
+            const select = form.querySelector('[name="machineId"]');
+            if (select) {
+              select.value = val;
+              select.style.outline = "2px solid var(--primary)";
+              setTimeout(() => { select.style.outline = ""; }, 2500);
+              toast("Alternative machine selected in form.", "info");
+            }
+          } else if (kind === "slot") {
+            const startInput = form.querySelector('[name="requestedStart"]');
+            const endInput = form.querySelector('[name="requestedEnd"]');
+            if (startInput && endInput) {
+              const origStart = new Date(startInput.value);
+              const origEnd = new Date(endInput.value);
+              const durMs = isNaN(origStart.getTime()) || isNaN(origEnd.getTime()) ? 3600000 : Math.max(1800000, origEnd.getTime() - origStart.getTime());
+              const newStart = new Date(val);
+              const newEnd = new Date(newStart.getTime() + durMs);
+              startInput.value = newStart.toISOString().slice(0, 16);
+              endInput.value = newEnd.toISOString().slice(0, 16);
+              startInput.style.outline = "2px solid var(--accent)";
+              endInput.style.outline = "2px solid var(--accent)";
+              setTimeout(() => { startInput.style.outline = ""; endInput.style.outline = ""; }, 2500);
+              toast("Schedule window shifted to next available slot.", "info");
+            }
+          } else if (kind === "operator") {
+            const opSelect = form.querySelector('[name="operatorId"]');
+            if (opSelect) {
+              opSelect.value = val;
+              opSelect.style.outline = "2px solid var(--success)";
+              setTimeout(() => { opSelect.style.outline = ""; }, 2500);
+              toast("Certified operator selected in form.", "info");
+            }
+          }
+
+          form.scrollIntoView({ behavior: "smooth", block: "start" });
+          const submitBtn = form.querySelector('button[type="submit"]');
+          if (submitBtn) {
+            submitBtn.classList.add("btn-primary");
+            submitBtn.textContent = "Submit Updated Request (Alternative Applied)";
+          }
+        });
+      });
     }
   },
 
