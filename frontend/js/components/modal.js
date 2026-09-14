@@ -4,6 +4,7 @@
 let _modalKeydownHandler = null;
 
 function closeModal() {
+  window.PCTSDatePicker?.close();
   const root = document.getElementById("modal-root");
   if (root) root.innerHTML = "";
   if (_modalKeydownHandler) {
@@ -52,7 +53,9 @@ function openModal({ title, bodyHtml, wide, footerHtml, onMount }) {
   };
   document.addEventListener("keydown", _modalKeydownHandler);
 
+  window.PCTSDatePicker?.scan(root);
   if (onMount) onMount(root);
+  window.PCTSDatePicker?.scan(root);
 }
 
 window.closeModal = closeModal;

@@ -1,0 +1,404 @@
+/**
+ * PCTS Custom Date & DateTime Picker Component Styles
+ * Sleek, modern, theme-adaptive calendar & time picker dropdown.
+ */
+
+/* Input Wrapper & Icon Trigger */
+.pcts-datepicker-wrapper {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  width: 100%;
+}
+
+.pcts-datepicker-input {
+  width: 100%;
+  padding-right: 36px !important;
+  cursor: pointer;
+  font-family: var(--font-mono, monospace) !important;
+  font-size: 13px !important;
+}
+
+.pcts-datepicker-toggle-btn {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: transparent;
+  border: none;
+  padding: 4px;
+  border-radius: 6px;
+  cursor: pointer;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.15s ease, background-color 0.15s ease, transform 0.12s ease;
+  z-index: 2;
+}
+
+.pcts-datepicker-toggle-btn:hover {
+  color: var(--primary);
+  background: var(--primary-light);
+  transform: translateY(-50%) scale(1.08);
+}
+
+.pcts-datepicker-toggle-btn:active {
+  transform: translateY(-50%) scale(0.95);
+}
+
+/* Floating Dropdown Root */
+#pcts-datepicker-dropdown {
+  position: fixed;
+  z-index: 100000;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg, 14px);
+  box-shadow: 0 20px 45px -8px rgba(0, 0, 0, 0.4), 0 0 0 1px var(--border);
+  display: none;
+  user-select: none;
+  font-family: var(--font-sans);
+  overflow: hidden;
+  animation: pctsDpIn 0.16s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+:root[data-theme="dark"] #pcts-datepicker-dropdown {
+  box-shadow: 0 24px 50px -10px rgba(0, 0, 0, 0.65), 0 0 0 1px rgba(59, 130, 246, 0.2);
+}
+
+@keyframes pctsDpIn {
+  from {
+    opacity: 0;
+    transform: translateY(-6px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* Dropdown Body Layout */
+.pcts-dp-body {
+  display: flex;
+  flex-direction: row;
+}
+
+/* Calendar Pane */
+.pcts-dp-calendar-pane {
+  width: 290px;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+}
+
+.pcts-dp-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.pcts-dp-month-label {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text);
+  background: transparent;
+  border: none;
+  padding: 4px 8px;
+  border-radius: 6px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  transition: background 0.15s;
+}
+
+.pcts-dp-month-label:hover {
+  background: var(--surface-raised);
+}
+
+.pcts-dp-nav-btns {
+  display: flex;
+  gap: 4px;
+}
+
+.pcts-dp-nav-btn {
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--surface-raised);
+  color: var(--text);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.pcts-dp-nav-btn:hover {
+  background: var(--primary-light);
+  border-color: var(--primary);
+  color: var(--primary);
+}
+
+/* Weekday Labels */
+.pcts-dp-weekdays {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  text-align: center;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-muted);
+  margin-bottom: 6px;
+}
+
+/* Days Grid */
+.pcts-dp-days {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 3px;
+}
+
+.pcts-dp-day {
+  height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text);
+  border-radius: 8px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  position: relative;
+  transition: all 0.12s ease;
+  font-family: var(--font-sans);
+}
+
+.pcts-dp-day:hover:not(.pcts-dp-selected) {
+  background: var(--surface-raised);
+  color: var(--primary);
+}
+
+.pcts-dp-day.pcts-dp-other-month {
+  color: var(--text-muted);
+  opacity: 0.38;
+}
+
+.pcts-dp-day.pcts-dp-today:not(.pcts-dp-selected) {
+  font-weight: 700;
+  color: var(--primary);
+  background: var(--primary-light);
+}
+
+.pcts-dp-day.pcts-dp-selected {
+  background: var(--primary) !important;
+  color: #ffffff !important;
+  font-weight: 700;
+  box-shadow: 0 2px 10px var(--primary-glow);
+}
+
+/* Time Selector Pane (Side Panel for Datetime) */
+.pcts-dp-time-pane {
+  width: 195px;
+  padding: 14px 12px;
+  border-left: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  background: var(--surface-hover);
+}
+
+.pcts-dp-time-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--border);
+}
+
+.pcts-dp-time-title {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-muted);
+}
+
+.pcts-dp-time-badge {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--primary);
+  background: var(--primary-light);
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.pcts-dp-time-cols {
+  display: grid;
+  grid-template-columns: 1fr 1fr 50px;
+  gap: 4px;
+  height: 220px;
+}
+
+.pcts-dp-time-col {
+  overflow-y: auto;
+  scrollbar-width: thin;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding-right: 2px;
+}
+
+.pcts-dp-time-col::-webkit-scrollbar {
+  width: 4px;
+}
+
+.pcts-dp-time-col::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 4px;
+}
+
+.pcts-dp-time-col-label {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  text-align: center;
+  padding: 2px 0 4px 0;
+  position: sticky;
+  top: 0;
+  background: var(--surface-hover);
+  z-index: 1;
+}
+
+.pcts-dp-time-item {
+  padding: 5px 2px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--text-secondary);
+  background: transparent;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  text-align: center;
+  transition: all 0.12s;
+}
+
+.pcts-dp-time-item:hover:not(.pcts-dp-time-selected) {
+  background: var(--surface-raised);
+  color: var(--text);
+}
+
+.pcts-dp-time-item.pcts-dp-time-selected {
+  background: var(--primary) !important;
+  color: #ffffff !important;
+  font-weight: 700;
+  box-shadow: 0 2px 6px var(--primary-glow);
+}
+
+/* Footer Actions */
+.pcts-dp-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 9px 14px;
+  background: var(--surface-raised);
+  border-top: 1px solid var(--border);
+}
+
+.pcts-dp-footer-left {
+  display: flex;
+  gap: 8px;
+}
+
+.pcts-dp-btn-link {
+  font-size: 12px;
+  font-weight: 600;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 3px 6px;
+  border-radius: 4px;
+  color: var(--text-muted);
+  transition: color 0.15s, background 0.15s;
+}
+
+.pcts-dp-btn-link:hover {
+  color: var(--text);
+  background: var(--surface);
+}
+
+.pcts-dp-btn-now {
+  color: var(--primary) !important;
+}
+
+.pcts-dp-btn-now:hover {
+  background: var(--primary-light) !important;
+}
+
+.pcts-dp-btn-apply {
+  font-size: 12px;
+  font-weight: 700;
+  padding: 5px 14px;
+  border-radius: 6px;
+  border: none;
+  background: var(--primary);
+  color: #ffffff;
+  cursor: pointer;
+  transition: background 0.15s, transform 0.1s;
+}
+
+.pcts-dp-btn-apply:hover {
+  background: var(--primary-hover);
+}
+
+.pcts-dp-btn-apply:active {
+  transform: scale(0.97);
+}
+
+/* Month/Year Quick Jump Overlay */
+.pcts-dp-overlay {
+  position: absolute;
+  top: 50px;
+  left: 0;
+  right: 0;
+  bottom: 45px;
+  background: var(--surface);
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  padding: 12px;
+  z-index: 10;
+  align-content: center;
+}
+
+.pcts-dp-overlay-item {
+  padding: 10px 4px;
+  font-size: 13px;
+  font-weight: 600;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--surface-raised);
+  color: var(--text);
+  cursor: pointer;
+  text-align: center;
+  transition: all 0.15s;
+}
+
+.pcts-dp-overlay-item:hover {
+  border-color: var(--primary);
+  background: var(--primary-light);
+  color: var(--primary);
+}
+
+.pcts-dp-overlay-item.active {
+  background: var(--primary);
+  color: #ffffff;
+  border-color: var(--primary);
+}

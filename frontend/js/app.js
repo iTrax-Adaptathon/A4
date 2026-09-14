@@ -383,11 +383,14 @@ const App = {
       content.innerHTML = `<div class="empty-state">Page not found.</div>`;
       return;
     }
+    window.PCTSDatePicker?.close();
     content.innerHTML = `<div class="empty-state">Loading view...</div>`;
-    Promise.resolve(handler()).catch((err) => {
-      console.error(err);
-      content.innerHTML = `<div class="empty-state">Failed to load: ${esc(apiErrorMessage(err))}</div>`;
-    });
+    Promise.resolve(handler())
+      .then(() => window.PCTSDatePicker?.scan(content))
+      .catch((err) => {
+        console.error(err);
+        content.innerHTML = `<div class="empty-state">Failed to load: ${esc(apiErrorMessage(err))}</div>`;
+      });
   },
 
   navigate(route) {
