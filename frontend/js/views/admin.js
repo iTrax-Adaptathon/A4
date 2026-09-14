@@ -123,248 +123,721 @@ Views.admin = {
     }
 
     const totalPermsCount = permsResp.items.length;
-    const activeRoleId = (this._activeRoleId && rolesResp.items.some((r) => r.id === this._activeRoleId))
+
+    // Role Metadata (monogram & accent color)
+    const ROLE_METAS = {
+      SYSTEM_ADMIN: { monogram: "SA", color: "#4f46e5" },
+      PRODUCTION_MANAGER: { monogram: "PM", color: "#2563eb" },
+      SUPERVISOR: { monogram: "SV", color: "#0284c7" },
+      QA_QC_OFFICER: { monogram: "QA", color: "#059669" },
+      MAINTENANCE_OFFICER: { monogram: "MO", color: "#d97706" },
+      OPERATOR: { monogram: "OP", color: "#7c3aed" },
+    };
+
+    const getRoleMeta = (id, name) => {
+      if (ROLE_METAS[id]) return ROLE_METAS[id];
+      const mono = (name || id || "RO").split(/[\s_]+/).map((w) => w[0]).slice(0, 2).join("").toUpperCase();
+      return { monogram: mono, color: "var(--primary)" };
+    };
+
+    // State Tracking
+    const rolePerms = new Map();
+    const savedPerms = new Map();
+    rolesResp.items.forEach((r) => {
+      const perms = new Set(r.permissions || []);
+      rolePerms.set(r.id, new Set(perms));
+      savedPerms.set(r.id, new Set(perms));
+    });
+
+    let activeRoleId = (this._activeRoleId && rolesResp.items.some((r) => r.id === this._activeRoleId))
       ? this._activeRoleId
       : (rolesResp.items[0] ? rolesResp.items[0].id : "");
 
+    let activeFilter = "all"; // 'all' | 'granted' | 'revoked'
+    let searchQuery = "";
+    let activeView = "detail"; // 'detail' | 'matrix'
+    const expandedCategories = new Set(CATEGORIES.map((c) => c.id));
+
+    // Render Main Shell
     content.innerHTML = `
       <div class="roles-view-container">
-        <div class="page-header">
-          <div>
+        <!-- Header & View Switcher -->
+        <div class="roles-view-header">
+          <div class="roles-title-group">
             <h2>Roles &amp; Permissions</h2>
-            <p class="muted" style="margin: 4px 0 0 0; font-size: 13px;">Configure role-based access control (RBAC) and functional authority for each system role.</p>
+            <p>Configure role-based access control (RBAC), privilege boundaries, and operational authority.</p>
+          </div>
+          <div class="roles-view-toggle-wrap">
+            <div class="segmented-control" id="roles-view-switcher">
+              <button type="button" class="segmented-btn active" data-view="detail">
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>
+                <span>Role Permissions</span>
+              </button>
+              <button type="button" class="segmented-btn" data-view="matrix">
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="3" y1="9" x2="21" y2="9"></line><line x1="3" y1="15" x2="21" y2="15"></line><line x1="9" y1="3" x2="9" y2="21"></line><line x1="15" y1="3" x2="15" y2="21"></line></svg>
+                <span>Comparison Matrix</span>
+              </button>
+            </div>
           </div>
         </div>
 
-        <!-- Role Selector Tabs -->
-        <div class="role-tabs-bar" role="tablist">
-          ${rolesResp.items.map((r) => {
-            const assignedCount = (r.permissions || []).length;
-            const isActive = r.id === activeRoleId;
-            return `
-              <button type="button" class="role-tab-btn ${isActive ? "active" : ""}" data-role-tab="${r.id}" role="tab" aria-selected="${isActive}">
-                <span>${esc(r.name)}</span>
-                <span class="role-tab-badge" id="tab-badge-${r.id}">${assignedCount}/${totalPermsCount}</span>
-              </button>`;
-          }).join("")}
+        <!-- Master-Detail View (Default) -->
+        <div class="roles-master-detail" id="roles-detail-view">
+          <!-- Left Rail: Roles -->
+          <aside class="roles-master-rail">
+            <div class="rail-header">
+              <span class="rail-header-title">System Roles</span>
+              <span class="badge badge-primary" style="font-size: 11px;">${rolesResp.items.length} Roles</span>
+            </div>
+            <div class="roles-rail-list" id="roles-rail-list"></div>
+          </aside>
+
+          <!-- Right Workspace: Active Role Permissions -->
+          <main class="roles-workspace" id="roles-workspace"></main>
         </div>
 
-        <!-- Role Permission Panels -->
-        ${rolesResp.items.map((r) => {
-          const isActive = r.id === activeRoleId;
-          const assignedCount = (r.permissions || []).length;
-
-          return `
-            <div class="role-panel ${isActive ? "active" : ""}" id="role-panel-${r.id}" data-panel-role="${r.id}">
-              <div class="role-overview-card">
-                <div class="role-meta-row">
-                  <div class="role-title-group">
-                    <div class="role-title-line">
-                      <h3>${esc(r.name)}</h3>
-                      <span class="badge badge-primary" id="role-summary-badge-${r.id}">${assignedCount} of ${totalPermsCount} granted</span>
-                    </div>
-                    <p class="role-description">${esc(r.description || "System functional role.")}</p>
-                  </div>
-                  <div class="role-actions-group">
-                    <button class="btn btn-sm" data-select-all-role="${r.id}">Select All</button>
-                    <button class="btn btn-sm" data-clear-all-role="${r.id}">Deselect All</button>
-                    <button class="btn btn-sm btn-primary" data-save-role="${r.id}">
-                      <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>
-                      Save Permissions
-                    </button>
-                  </div>
-                </div>
-
-                <div class="role-toolbar">
-                  <div class="role-filter-box">
-                    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
-                    <input type="text" class="role-perm-filter" data-filter-role="${r.id}" placeholder="Filter permissions in this role..." autocomplete="off" />
-                  </div>
-                  <span class="muted" style="font-size: 12px;">Changes take effect immediately upon saving.</span>
-                </div>
-              </div>
-
-              <!-- Categorized Grid of Permissions -->
-              <div class="perm-categories-grid" id="categories-grid-${r.id}">
-                ${CATEGORIES.map((cat) => {
-                  const catPerms = cat.codes.map((c) => permMap.get(c)).filter(Boolean);
-                  if (!catPerms.length) return "";
-                  const catChecked = catPerms.filter((p) => r.permissions.includes(p.code)).length;
-
-                  return `
-                    <div class="perm-category-card" data-cat-id="${cat.id}">
-                      <div class="perm-category-header">
-                        <div class="perm-category-title">
-                          ${cat.icon}
-                          <span>${esc(cat.name)}</span>
-                        </div>
-                        <div class="perm-category-controls">
-                          <span class="cat-count-badge" id="cat-badge-${r.id}-${cat.id}">${catChecked}/${catPerms.length}</span>
-                          <button type="button" class="cat-toggle-link" data-cat-toggle="${cat.id}" data-role-id="${r.id}" title="Toggle all in ${esc(cat.name)}">
-                            Toggle
-                          </button>
-                        </div>
-                      </div>
-
-                      <div class="perm-items-list">
-                        ${catPerms.map((p) => {
-                          const isChecked = r.permissions.includes(p.code);
-                          return `
-                            <label class="perm-item-row ${isChecked ? "is-checked" : ""}" data-perm-code="${esc(p.code)}" data-perm-desc="${esc((p.description || '').toLowerCase())}">
-                              <div class="perm-checkbox-wrap">
-                                <input type="checkbox" data-role="${r.id}" data-cat="${cat.id}" value="${p.code}" ${isChecked ? "checked" : ""} />
-                              </div>
-                              <div class="perm-info">
-                                <div class="perm-code-line">
-                                  <span class="perm-code">${esc(p.code)}</span>
-                                </div>
-                                <span class="perm-desc">${esc(p.description || "")}</span>
-                              </div>
-                            </label>`;
-                        }).join("")}
-                      </div>
-                    </div>`;
-                }).join("")}
-              </div>
-            </div>`;
-        }).join("")}
+        <!-- Side-by-Side Comparison Matrix View -->
+        <div class="roles-matrix-card" id="roles-matrix-view" style="display: none;"></div>
       </div>
     `;
 
-    // Helper: update role and category counters
-    const updateCounters = (roleId) => {
-      const panel = document.getElementById(`role-panel-${roleId}`);
-      if (!panel) return;
-      const allCheckboxes = panel.querySelectorAll(`input[data-role="${roleId}"]`);
-      const checkedBoxes = panel.querySelectorAll(`input[data-role="${roleId}"]:checked`);
-      const assignedCount = checkedBoxes.length;
+    // Helpers
+    const getActiveRole = () => rolesResp.items.find((r) => r.id === activeRoleId) || rolesResp.items[0];
 
-      // Update role badges
-      const tabBadge = document.getElementById(`tab-badge-${roleId}`);
-      if (tabBadge) tabBadge.textContent = `${assignedCount}/${totalPermsCount}`;
-      const sumBadge = document.getElementById(`role-summary-badge-${roleId}`);
-      if (sumBadge) sumBadge.textContent = `${assignedCount} of ${totalPermsCount} granted`;
+    const isDirty = (roleId) => {
+      const current = rolePerms.get(roleId);
+      const original = savedPerms.get(roleId);
+      if (!current || !original) return false;
+      if (current.size !== original.size) return true;
+      for (const code of current) {
+        if (!original.has(code)) return true;
+      }
+      return false;
+    };
 
-      // Update category badges
-      CATEGORIES.forEach((cat) => {
-        const catInputs = panel.querySelectorAll(`input[data-role="${roleId}"][data-cat="${cat.id}"]`);
-        const catChecked = panel.querySelectorAll(`input[data-role="${roleId}"][data-cat="${cat.id}"]:checked`);
-        const catBadge = document.getElementById(`cat-badge-${roleId}-${cat.id}`);
-        if (catBadge) catBadge.textContent = `${catChecked.length}/${catInputs.length}`;
+    // Render Left Rail List
+    const renderRailList = () => {
+      const railList = document.getElementById("roles-rail-list");
+      if (!railList) return;
+
+      railList.innerHTML = rolesResp.items.map((r) => {
+        const meta = getRoleMeta(r.id, r.name);
+        const assigned = rolePerms.get(r.id) ? rolePerms.get(r.id).size : 0;
+        const percent = Math.round((assigned / totalPermsCount) * 100);
+        const isActive = r.id === activeRoleId;
+        const dirty = isDirty(r.id);
+
+        return `
+          <button type="button" class="role-rail-item ${isActive ? "active" : ""}" data-rail-role="${r.id}">
+            <div class="role-rail-monogram" style="background: ${meta.color};">${meta.monogram}</div>
+            <div class="role-rail-info">
+              <div class="role-rail-top">
+                <span class="role-rail-name">${esc(r.name)}${dirty ? ` <span style="color: var(--warning);" title="Unsaved changes">*</span>` : ""}</span>
+                <span class="role-rail-count">${assigned}/${totalPermsCount}</span>
+              </div>
+              <div class="role-rail-bar-track">
+                <div class="role-rail-bar-fill" style="width: ${percent}%;"></div>
+              </div>
+            </div>
+          </button>
+        `;
+      }).join("");
+
+      railList.querySelectorAll(".role-rail-item").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          const roleId = btn.dataset.railRole;
+          if (roleId === activeRoleId) return;
+          activeRoleId = roleId;
+          this._activeRoleId = roleId;
+          renderRailList();
+          renderWorkspace();
+        });
       });
     };
 
-    // Tab switching
-    content.querySelectorAll(".role-tab-btn").forEach((btn) => {
-      btn.addEventListener("click", () => {
-        const roleId = btn.dataset.roleTab;
-        this._activeRoleId = roleId;
-        content.querySelectorAll(".role-tab-btn").forEach((b) => b.classList.toggle("active", b.dataset.roleTab === roleId));
-        content.querySelectorAll(".role-panel").forEach((p) => p.classList.toggle("active", p.dataset.panelRole === roleId));
-      });
-    });
+    // Render Workspace
+    const renderWorkspace = () => {
+      const workspace = document.getElementById("roles-workspace");
+      if (!workspace) return;
 
-    // Row click & checkbox change handler
-    content.querySelectorAll(".perm-item-row input[type='checkbox']").forEach((cb) => {
-      cb.addEventListener("change", (e) => {
-        const row = cb.closest(".perm-item-row");
-        if (row) row.classList.toggle("is-checked", cb.checked);
-        updateCounters(cb.dataset.role);
-      });
-    });
+      const role = getActiveRole();
+      if (!role) return;
 
-    // Category toggle link (select/deselect all in category)
-    content.querySelectorAll("[data-cat-toggle]").forEach((btn) => {
-      btn.addEventListener("click", () => {
-        const catId = btn.dataset.catToggle;
-        const roleId = btn.dataset.roleId;
-        const panel = document.getElementById(`role-panel-${roleId}`);
-        if (!panel) return;
-        const catInputs = Array.from(panel.querySelectorAll(`input[data-role="${roleId}"][data-cat="${catId}"]`));
-        const allChecked = catInputs.every((cb) => cb.checked);
-        catInputs.forEach((cb) => {
-          cb.checked = !allChecked;
-          const row = cb.closest(".perm-item-row");
-          if (row) row.classList.toggle("is-checked", cb.checked);
-        });
-        updateCounters(roleId);
-      });
-    });
+      const meta = getRoleMeta(role.id, role.name);
+      const currentSet = rolePerms.get(role.id) || new Set();
+      const assignedCount = currentSet.size;
+      const percent = Math.round((assignedCount / totalPermsCount) * 100);
+      const dirty = isDirty(role.id);
 
-    // Role-level Select All
-    content.querySelectorAll("[data-select-all-role]").forEach((btn) => {
-      btn.addEventListener("click", () => {
-        const roleId = btn.dataset.selectAllRole;
-        const panel = document.getElementById(`role-panel-${roleId}`);
-        if (!panel) return;
-        panel.querySelectorAll(`input[data-role="${roleId}"]`).forEach((cb) => {
-          cb.checked = true;
-          const row = cb.closest(".perm-item-row");
-          if (row) row.classList.add("is-checked");
-        });
-        updateCounters(roleId);
-      });
-    });
+      workspace.innerHTML = `
+        <!-- Hero Overview Banner -->
+        <div class="role-workspace-hero">
+          <div class="hero-main-row">
+            <div class="hero-role-badge-row">
+              <div class="hero-role-monogram" style="background: ${meta.color};">${meta.monogram}</div>
+              <div class="hero-role-headings">
+                <div class="hero-title-line">
+                  <h3 id="hero-role-title">${esc(role.name)}</h3>
+                  <span class="badge ${assignedCount === totalPermsCount ? "badge-green" : "badge-primary"}" id="hero-role-badge">
+                    ${assignedCount} of ${totalPermsCount} Granted (${percent}%)
+                  </span>
+                </div>
+                <p class="hero-role-desc">${esc(role.description || "System functional role.")}</p>
+              </div>
+            </div>
+            <div class="hero-role-actions">
+              <button type="button" class="btn btn-sm btn-ghost" id="btn-select-all" title="Grant all permissions">Select All</button>
+              <button type="button" class="btn btn-sm btn-ghost" id="btn-clear-all" title="Deselect all permissions">Deselect All</button>
+              <button type="button" class="btn btn-sm ${dirty ? "btn-warning" : "btn-primary"}" id="btn-save-role">
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>
+                <span id="save-btn-label">${dirty ? "Save Changes *" : "Save Permissions"}</span>
+              </button>
+            </div>
+          </div>
+          <div class="hero-progress-wrap">
+            <div class="hero-progress-track">
+              <div class="hero-progress-bar" id="hero-progress-fill" style="width: ${percent}%;"></div>
+            </div>
+          </div>
+        </div>
 
-    // Role-level Deselect All
-    content.querySelectorAll("[data-clear-all-role]").forEach((btn) => {
-      btn.addEventListener("click", () => {
-        const roleId = btn.dataset.clearAllRole;
-        const panel = document.getElementById(`role-panel-${roleId}`);
-        if (!panel) return;
-        panel.querySelectorAll(`input[data-role="${roleId}"]`).forEach((cb) => {
-          cb.checked = false;
-          const row = cb.closest(".perm-item-row");
-          if (row) row.classList.remove("is-checked");
-        });
-        updateCounters(roleId);
-      });
-    });
+        <!-- Filter & Search Toolbar -->
+        <div class="roles-toolbar-card">
+          <div class="toolbar-search-wrap">
+            <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+            <input type="text" id="role-perm-search" placeholder="Search permissions (e.g. 'orders', 'hold', 'batch')..." value="${esc(searchQuery)}" autocomplete="off" />
+            <button type="button" class="toolbar-search-clear" id="role-search-clear" style="display: ${searchQuery ? "block" : "none"};">&times;</button>
+          </div>
 
-    // Live search filter inside active role
-    content.querySelectorAll(".role-perm-filter").forEach((input) => {
-      input.addEventListener("input", (e) => {
-        const q = e.target.value.trim().toLowerCase();
-        const roleId = input.dataset.filterRole;
-        const panel = document.getElementById(`role-panel-${roleId}`);
-        if (!panel) return;
+          <div class="toolbar-controls-row">
+            <!-- Status Filter Segmented Control -->
+            <div class="status-segment-group" id="status-filter-group">
+              <button type="button" class="status-pill-btn ${activeFilter === "all" ? "active" : ""}" data-status="all">
+                All <span class="pill-count" id="count-pill-all">${totalPermsCount}</span>
+              </button>
+              <button type="button" class="status-pill-btn ${activeFilter === "granted" ? "active" : ""}" data-status="granted">
+                Granted <span class="pill-count" id="count-pill-granted">${assignedCount}</span>
+              </button>
+              <button type="button" class="status-pill-btn ${activeFilter === "revoked" ? "active" : ""}" data-status="revoked">
+                Not Granted <span class="pill-count" id="count-pill-revoked">${totalPermsCount - assignedCount}</span>
+              </button>
+            </div>
 
-        panel.querySelectorAll(".perm-category-card").forEach((card) => {
-          let hasMatch = false;
-          card.querySelectorAll(".perm-item-row").forEach((row) => {
-            const code = row.dataset.permCode.toLowerCase();
-            const desc = row.dataset.permDesc;
-            const matches = !q || code.includes(q) || desc.includes(q);
-            row.style.display = matches ? "flex" : "none";
-            if (matches) hasMatch = true;
-          });
-          card.style.display = hasMatch ? "flex" : "none";
-        });
-      });
-    });
+            <!-- Global Accordion Controls -->
+            <div class="accordion-global-controls">
+              <button type="button" class="link-btn" id="btn-expand-all">
+                <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><polyline points="7 11 12 6 17 11"></polyline><polyline points="7 18 12 13 17 18"></polyline></svg>
+                Expand All
+              </button>
+              <span class="control-sep">|</span>
+              <button type="button" class="link-btn" id="btn-collapse-all">
+                <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><polyline points="7 13 12 18 17 13"></polyline><polyline points="7 6 12 11 17 6"></polyline></svg>
+                Collapse All
+              </button>
+            </div>
+          </div>
+        </div>
 
-    // Save button handler
-    content.querySelectorAll("[data-save-role]").forEach((b) => b.addEventListener("click", async () => {
-      const roleId = b.dataset.saveRole;
-      const roleObj = rolesResp.items.find((r) => r.id === roleId);
-      const roleName = roleObj ? roleObj.name : "Role";
-      const codes = Array.from(content.querySelectorAll(`input[data-role="${roleId}"]:checked`)).map((c) => c.value);
-      try {
-        b.disabled = true;
-        b.textContent = "Saving...";
-        await Api.patch(`/v1/roles/${roleId}/permissions`, { permissionCodes: codes });
-        toast(`Permissions updated for ${roleName}.`, "success");
-        // Update local object so counts stay synced
-        if (roleObj) roleObj.permissions = codes;
-        updateCounters(roleId);
-      } catch (err) {
-        notifyError(err);
-      } finally {
-        b.disabled = false;
-        b.innerHTML = `<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg> Save Permissions`;
+        <!-- Collapsible Category Accordions -->
+        <div class="role-accordions-container" id="categories-accordion-container">
+          ${CATEGORIES.map((cat) => {
+            const catPerms = cat.codes.map((c) => permMap.get(c)).filter(Boolean);
+            if (!catPerms.length) return "";
+            const catGranted = catPerms.filter((p) => currentSet.has(p.code)).length;
+            const isExpanded = expandedCategories.has(cat.id);
+            const statusClass = catGranted === catPerms.length
+              ? "all-granted"
+              : catGranted > 0
+                ? "partial-granted"
+                : "none-granted";
+
+            return `
+              <div class="category-accordion-card ${isExpanded ? "expanded" : ""}" data-accordion-cat="${cat.id}">
+                <div class="category-accordion-header" data-toggle-header="${cat.id}">
+                  <div class="cat-header-left">
+                    <span class="cat-chevron">
+                      <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                    </span>
+                    <div class="cat-icon-wrap">${cat.icon}</div>
+                    <div class="cat-title-wrap">
+                      <span class="cat-title-text">${esc(cat.name)}</span>
+                      <span class="cat-status-badge ${statusClass}" id="cat-badge-${cat.id}">
+                        ${catGranted}/${catPerms.length} Granted
+                      </span>
+                    </div>
+                  </div>
+                  <div class="cat-header-right">
+                    <button type="button" class="cat-quick-btn" data-cat-grant="${cat.id}" title="Grant all in ${esc(cat.name)}">Grant All</button>
+                    <button type="button" class="cat-quick-btn" data-cat-revoke="${cat.id}" title="Revoke all in ${esc(cat.name)}">Revoke</button>
+                  </div>
+                </div>
+
+                <div class="category-accordion-content" id="cat-content-${cat.id}" style="${isExpanded ? "display: block;" : "display: none;"}">
+                  <div class="category-perm-list">
+                    ${catPerms.map((p) => {
+                      const isGranted = currentSet.has(p.code);
+                      return `
+                        <div class="perm-row ${isGranted ? "granted" : ""}" data-perm-code="${esc(p.code)}" data-perm-desc="${esc((p.description || '').toLowerCase())}">
+                          <div class="perm-left">
+                            <div class="perm-title-line">
+                              <span class="perm-code">${esc(p.code)}</span>
+                            </div>
+                            <span class="perm-desc">${esc(p.description || "")}</span>
+                          </div>
+                          <div class="perm-right">
+                            <label class="switch-control" title="${isGranted ? "Granted" : "Not granted"}">
+                              <input type="checkbox" class="perm-switch" data-code="${esc(p.code)}" ${isGranted ? "checked" : ""} />
+                              <span class="switch-slider"></span>
+                            </label>
+                          </div>
+                        </div>
+                      `;
+                    }).join("")}
+                  </div>
+                </div>
+              </div>
+            `;
+          }).join("")}
+        </div>
+      `;
+
+      // Apply initial filter / search states to rows
+      applyFilterAndSearch();
+      bindWorkspaceEvents();
+    };
+
+    // Update active counters and visual badges
+    const updateWorkspaceStats = () => {
+      const role = getActiveRole();
+      if (!role) return;
+
+      const currentSet = rolePerms.get(role.id) || new Set();
+      const assignedCount = currentSet.size;
+      const percent = Math.round((assignedCount / totalPermsCount) * 100);
+      const dirty = isDirty(role.id);
+
+      // Hero badges & bars
+      const badge = document.getElementById("hero-role-badge");
+      if (badge) {
+        badge.textContent = `${assignedCount} of ${totalPermsCount} Granted (${percent}%)`;
+        badge.className = `badge ${assignedCount === totalPermsCount ? "badge-green" : "badge-primary"}`;
       }
-    }));
+      const fill = document.getElementById("hero-progress-fill");
+      if (fill) fill.style.width = `${percent}%`;
+
+      // Status pill counts
+      const pillGranted = document.getElementById("count-pill-granted");
+      if (pillGranted) pillGranted.textContent = assignedCount;
+      const pillRevoked = document.getElementById("count-pill-revoked");
+      if (pillRevoked) pillRevoked.textContent = totalPermsCount - assignedCount;
+
+      // Save button state
+      const saveBtn = document.getElementById("btn-save-role");
+      const saveLabel = document.getElementById("save-btn-label");
+      if (saveBtn && saveLabel) {
+        saveBtn.className = `btn btn-sm ${dirty ? "btn-warning" : "btn-primary"}`;
+        saveLabel.textContent = dirty ? "Save Changes *" : "Save Permissions";
+      }
+
+      // Update category badges
+      CATEGORIES.forEach((cat) => {
+        const catPerms = cat.codes.map((c) => permMap.get(c)).filter(Boolean);
+        const catGranted = catPerms.filter((p) => currentSet.has(p.code)).length;
+        const catBadge = document.getElementById(`cat-badge-${cat.id}`);
+        if (catBadge) {
+          catBadge.textContent = `${catGranted}/${catPerms.length} Granted`;
+          catBadge.className = `cat-status-badge ${
+            catGranted === catPerms.length ? "all-granted" : catGranted > 0 ? "partial-granted" : "none-granted"
+          }`;
+        }
+      });
+
+      // Update Left Rail without re-rendering entire rail
+      renderRailList();
+    };
+
+    // Filter & Search Logic
+    const applyFilterAndSearch = () => {
+      const query = searchQuery.trim().toLowerCase();
+      const role = getActiveRole();
+      if (!role) return;
+      const currentSet = rolePerms.get(role.id) || new Set();
+
+      document.querySelectorAll(".category-accordion-card").forEach((card) => {
+        const catId = card.dataset.accordionCat;
+        let visibleRows = 0;
+
+        card.querySelectorAll(".perm-row").forEach((row) => {
+          const code = row.dataset.permCode;
+          const desc = row.dataset.permDesc;
+          const isGranted = currentSet.has(code);
+
+          // Check Status Filter
+          let statusMatch = true;
+          if (activeFilter === "granted") statusMatch = isGranted;
+          else if (activeFilter === "revoked") statusMatch = !isGranted;
+
+          // Check Search Query
+          let queryMatch = true;
+          if (query) {
+            queryMatch = code.toLowerCase().includes(query) || desc.includes(query);
+          }
+
+          const isVisible = statusMatch && queryMatch;
+          row.style.display = isVisible ? "flex" : "none";
+          if (isVisible) visibleRows++;
+        });
+
+        // Hide whole category if no permissions match
+        card.style.display = visibleRows > 0 ? "flex" : "none";
+
+        // If searching with active query and category has matches, auto-expand it
+        if (query && visibleRows > 0) {
+          expandedCategories.add(catId);
+          card.classList.add("expanded");
+          const contentEl = document.getElementById(`cat-content-${catId}`);
+          if (contentEl) contentEl.style.display = "block";
+        }
+      });
+    };
+
+    // Workspace Event Bindings
+    const bindWorkspaceEvents = () => {
+      const role = getActiveRole();
+      if (!role) return;
+
+      // Accordion header click to expand / collapse
+      document.querySelectorAll("[data-toggle-header]").forEach((header) => {
+        header.addEventListener("click", (e) => {
+          // If clicked inside quick-actions, ignore
+          if (e.target.closest(".cat-header-right")) return;
+          const catId = header.dataset.toggleHeader;
+          const card = header.closest(".category-accordion-card");
+          const contentEl = document.getElementById(`cat-content-${catId}`);
+          if (!card || !contentEl) return;
+
+          const isCurrentlyExpanded = card.classList.contains("expanded");
+          if (isCurrentlyExpanded) {
+            card.classList.remove("expanded");
+            contentEl.style.display = "none";
+            expandedCategories.delete(catId);
+          } else {
+            card.classList.add("expanded");
+            contentEl.style.display = "block";
+            expandedCategories.add(catId);
+          }
+        });
+      });
+
+      // Permission Row click & switch change handler
+      document.querySelectorAll(".perm-row").forEach((row) => {
+        row.addEventListener("click", (e) => {
+          // Prevent double toggle if switch itself was clicked
+          if (e.target.tagName === "INPUT" || e.target.classList.contains("switch-slider")) return;
+          const sw = row.querySelector(".perm-switch");
+          if (sw) {
+            sw.checked = !sw.checked;
+            sw.dispatchEvent(new Event("change", { bubbles: true }));
+          }
+        });
+      });
+
+      document.querySelectorAll(".perm-switch").forEach((sw) => {
+        sw.addEventListener("change", () => {
+          const code = sw.dataset.code;
+          const row = sw.closest(".perm-row");
+          const currentSet = rolePerms.get(role.id);
+          if (!currentSet) return;
+
+          if (sw.checked) {
+            currentSet.add(code);
+            if (row) row.classList.add("granted");
+          } else {
+            currentSet.delete(code);
+            if (row) row.classList.remove("granted");
+          }
+
+          updateWorkspaceStats();
+          if (activeFilter !== "all") {
+            applyFilterAndSearch();
+          }
+        });
+      });
+
+      // Category Quick Actions
+      document.querySelectorAll("[data-cat-grant]").forEach((btn) => {
+        btn.addEventListener("click", (e) => {
+          e.stopPropagation();
+          const catId = btn.dataset.catGrant;
+          const cat = CATEGORIES.find((c) => c.id === catId);
+          if (!cat) return;
+          const currentSet = rolePerms.get(role.id);
+          if (!currentSet) return;
+
+          cat.codes.forEach((code) => {
+            if (permMap.has(code)) {
+              currentSet.add(code);
+              const row = document.querySelector(`.perm-row[data-perm-code="${code}"]`);
+              if (row) {
+                row.classList.add("granted");
+                const sw = row.querySelector(".perm-switch");
+                if (sw) sw.checked = true;
+              }
+            }
+          });
+
+          updateWorkspaceStats();
+          if (activeFilter !== "all") applyFilterAndSearch();
+        });
+      });
+
+      document.querySelectorAll("[data-cat-revoke]").forEach((btn) => {
+        btn.addEventListener("click", (e) => {
+          e.stopPropagation();
+          const catId = btn.dataset.catRevoke;
+          const cat = CATEGORIES.find((c) => c.id === catId);
+          if (!cat) return;
+          const currentSet = rolePerms.get(role.id);
+          if (!currentSet) return;
+
+          cat.codes.forEach((code) => {
+            currentSet.delete(code);
+            const row = document.querySelector(`.perm-row[data-perm-code="${code}"]`);
+            if (row) {
+              row.classList.remove("granted");
+              const sw = row.querySelector(".perm-switch");
+              if (sw) sw.checked = false;
+            }
+          });
+
+          updateWorkspaceStats();
+          if (activeFilter !== "all") applyFilterAndSearch();
+        });
+      });
+
+      // Select All / Deselect All
+      const selectAllBtn = document.getElementById("btn-select-all");
+      if (selectAllBtn) {
+        selectAllBtn.addEventListener("click", () => {
+          const currentSet = rolePerms.get(role.id);
+          if (!currentSet) return;
+          permsResp.items.forEach((p) => currentSet.add(p.code));
+          document.querySelectorAll(".perm-row").forEach((row) => {
+            row.classList.add("granted");
+            const sw = row.querySelector(".perm-switch");
+            if (sw) sw.checked = true;
+          });
+          updateWorkspaceStats();
+          if (activeFilter !== "all") applyFilterAndSearch();
+        });
+      }
+
+      const clearAllBtn = document.getElementById("btn-clear-all");
+      if (clearAllBtn) {
+        clearAllBtn.addEventListener("click", () => {
+          const currentSet = rolePerms.get(role.id);
+          if (!currentSet) return;
+          currentSet.clear();
+          document.querySelectorAll(".perm-row").forEach((row) => {
+            row.classList.remove("granted");
+            const sw = row.querySelector(".perm-switch");
+            if (sw) sw.checked = false;
+          });
+          updateWorkspaceStats();
+          if (activeFilter !== "all") applyFilterAndSearch();
+        });
+      }
+
+      // Expand All / Collapse All
+      const expandAllBtn = document.getElementById("btn-expand-all");
+      if (expandAllBtn) {
+        expandAllBtn.addEventListener("click", () => {
+          CATEGORIES.forEach((c) => expandedCategories.add(c.id));
+          document.querySelectorAll(".category-accordion-card").forEach((card) => {
+            card.classList.add("expanded");
+            const contentEl = card.querySelector(".category-accordion-content");
+            if (contentEl) contentEl.style.display = "block";
+          });
+        });
+      }
+
+      const collapseAllBtn = document.getElementById("btn-collapse-all");
+      if (collapseAllBtn) {
+        collapseAllBtn.addEventListener("click", () => {
+          expandedCategories.clear();
+          document.querySelectorAll(".category-accordion-card").forEach((card) => {
+            card.classList.remove("expanded");
+            const contentEl = card.querySelector(".category-accordion-content");
+            if (contentEl) contentEl.style.display = "none";
+          });
+        });
+      }
+
+      // Status Segment Buttons
+      document.querySelectorAll("[data-status]").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          activeFilter = btn.dataset.status;
+          document.querySelectorAll("[data-status]").forEach((b) => b.classList.toggle("active", b.dataset.status === activeFilter));
+          applyFilterAndSearch();
+        });
+      });
+
+      // Search Filter
+      const searchInput = document.getElementById("role-perm-search");
+      const searchClear = document.getElementById("role-search-clear");
+      if (searchInput) {
+        searchInput.addEventListener("input", (e) => {
+          searchQuery = e.target.value;
+          if (searchClear) searchClear.style.display = searchQuery ? "block" : "none";
+          applyFilterAndSearch();
+        });
+      }
+      if (searchClear) {
+        searchClear.addEventListener("click", () => {
+          searchQuery = "";
+          if (searchInput) {
+            searchInput.value = "";
+            searchInput.focus();
+          }
+          searchClear.style.display = "none";
+          applyFilterAndSearch();
+        });
+      }
+
+      // Save Permissions Button
+      const saveBtn = document.getElementById("btn-save-role");
+      if (saveBtn) {
+        saveBtn.addEventListener("click", async () => {
+          const codes = Array.from(rolePerms.get(role.id) || []);
+          try {
+            saveBtn.disabled = true;
+            saveBtn.innerHTML = `<span>Saving...</span>`;
+            await Api.patch(`/v1/roles/${role.id}/permissions`, { permissionCodes: codes });
+            toast(`Permissions updated for ${role.name}.`, "success");
+            savedPerms.set(role.id, new Set(codes));
+            role.permissions = codes;
+            updateWorkspaceStats();
+          } catch (err) {
+            notifyError(err);
+          } finally {
+            saveBtn.disabled = false;
+            updateWorkspaceStats();
+          }
+        });
+      }
+    };
+
+    // Render Side-by-Side Comparison Matrix
+    const renderMatrixView = () => {
+      const matrixCard = document.getElementById("roles-matrix-view");
+      if (!matrixCard) return;
+
+      matrixCard.innerHTML = `
+        <div class="matrix-header-row">
+          <div>
+            <h3>Cross-Role Authorization Matrix</h3>
+            <p class="muted" style="margin: 4px 0 0 0; font-size: 13px;">Full side-by-side comparison of role capabilities across all operational domains.</p>
+          </div>
+          <div class="matrix-legend">
+            <span class="legend-item"><span class="matrix-icon-check"><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg></span> Granted</span>
+            <span class="legend-item"><span class="matrix-icon-dash">—</span> Restricted</span>
+          </div>
+        </div>
+
+        <div class="matrix-table-wrap">
+          <table class="matrix-table">
+            <thead>
+              <tr>
+                <th class="col-permission">Permission Domain &amp; Code</th>
+                ${rolesResp.items.map((r) => {
+                  const meta = getRoleMeta(r.id, r.name);
+                  const assigned = (r.permissions || []).length;
+                  return `
+                    <th class="col-role">
+                      <div class="matrix-th-role">
+                        <span class="matrix-th-mono" style="background: ${meta.color};">${meta.monogram}</span>
+                        <span class="matrix-th-title">${esc(r.name)}</span>
+                        <span class="matrix-th-count">${assigned}/${totalPermsCount}</span>
+                      </div>
+                    </th>
+                  `;
+                }).join("")}
+              </tr>
+            </thead>
+            <tbody>
+              ${CATEGORIES.map((cat) => {
+                const catPerms = cat.codes.map((c) => permMap.get(c)).filter(Boolean);
+                if (!catPerms.length) return "";
+
+                return `
+                  <tr class="matrix-cat-row">
+                    <td colspan="${rolesResp.items.length + 1}">
+                      <div class="matrix-cat-title">
+                        ${cat.icon}
+                        <span>${esc(cat.name)}</span>
+                        <span class="muted" style="font-weight: normal; font-size: 11.5px;">(${catPerms.length} permissions)</span>
+                      </div>
+                    </td>
+                  </tr>
+                  ${catPerms.map((p) => `
+                    <tr class="matrix-perm-row">
+                      <td class="col-permission">
+                        <div class="matrix-perm-info">
+                          <span class="matrix-perm-code">${esc(p.code)}</span>
+                          <span class="matrix-perm-desc">${esc(p.description || "")}</span>
+                        </div>
+                      </td>
+                      ${rolesResp.items.map((r) => {
+                        const hasPerm = (r.permissions || []).includes(p.code);
+                        return `
+                          <td class="col-role-cell">
+                            ${hasPerm
+                              ? `<span class="matrix-pill granted" title="Granted to ${esc(r.name)}"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg></span>`
+                              : `<span class="matrix-pill restricted" title="Restricted">—</span>`
+                            }
+                          </td>
+                        `;
+                      }).join("")}
+                    </tr>
+                  `).join("")}
+                `;
+              }).join("")}
+            </tbody>
+          </table>
+        </div>
+      `;
+    };
+
+    // View Switcher (Detail vs Matrix)
+    document.querySelectorAll("#roles-view-switcher [data-view]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const view = btn.dataset.view;
+        if (view === activeView) return;
+        activeView = view;
+
+        document.querySelectorAll("#roles-view-switcher [data-view]").forEach((b) => b.classList.toggle("active", b.dataset.view === activeView));
+
+        const detailView = document.getElementById("roles-detail-view");
+        const matrixView = document.getElementById("roles-matrix-view");
+
+        if (activeView === "detail") {
+          if (detailView) detailView.style.display = "grid";
+          if (matrixView) matrixView.style.display = "none";
+          renderRailList();
+          renderWorkspace();
+        } else {
+          if (detailView) detailView.style.display = "none";
+          if (matrixView) matrixView.style.display = "flex";
+          renderMatrixView();
+        }
+      });
+    });
+
+    // Initial Render
+    renderRailList();
+    renderWorkspace();
   },
+
 
   // ---------------- Audit Logs (Section 38) ----------------
 
