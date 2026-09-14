@@ -102,13 +102,13 @@ Views.traceability = {
     if (!timeline || !timeline.length) return "";
     return `
       <div class="section-divider">Event Timeline &amp; Root-Cause Sequence ("At what point did the problem begin?")</div>
-      <div class="timeline-container" style="margin-top:14px;border-left:3px solid var(--border, #e2e8f0);padding-left:16px;position:relative">
+      <div class="timeline-container">
         ${timeline.map((item) => `
-          <div class="timeline-item" style="margin-bottom:14px;position:relative">
-            <div style="position:absolute;left:-22px;top:4px;width:10px;height:10px;border-radius:50%;background:${item.severity === 'CRITICAL' ? 'var(--red, #e53e3e)' : item.severity === 'HIGH' ? 'var(--yellow, #dd6b20)' : 'var(--blue, #3182ce)'};box-shadow:0 0 0 2px var(--surface, #ffffff)"></div>
-            <div style="font-size:0.8em;color:var(--text-muted, #718096);font-weight:500">${fmtDate(item.timestamp)} &bull; ${timeAgo(item.timestamp)}</div>
-            <div style="font-weight:600;margin-top:2px">${esc(item.title)} ${item.severity && item.severity !== 'LOW' ? statusBadge(item.severity) : ''}</div>
-            ${item.detail ? `<div style="font-size:0.88em;color:var(--text, #2d3748);margin-top:2px">${esc(item.detail)}</div>` : ''}
+          <div class="timeline-item">
+            <div class="timeline-dot ${item.severity ? item.severity.toLowerCase() : 'info'}"></div>
+            <div class="timeline-meta">${fmtDate(item.timestamp)} &bull; ${timeAgo(item.timestamp)}</div>
+            <div class="timeline-title">${esc(item.title)} ${item.severity && item.severity !== 'LOW' ? statusBadge(item.severity) : ''}</div>
+            ${item.detail ? `<div class="timeline-detail">${esc(item.detail)}</div>` : ''}
           </div>
         `).join("")}
       </div>`;

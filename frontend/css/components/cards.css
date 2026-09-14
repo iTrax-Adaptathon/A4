@@ -2,25 +2,128 @@
 .card {
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: var(--radius);
-  box-shadow: var(--shadow);
-  padding: 16px;
-  margin-bottom: 16px;
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  padding: 22px 24px;
+  margin-bottom: 24px;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  position: relative;
 }
-.card h3 { font-size: 14px; margin-bottom: 12px; }
 
-.kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin-bottom: 18px; }
-.kpi-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); padding: 14px 16px; }
-.kpi-card .kpi-value { font-size: 24px; font-weight: 700; }
-.kpi-card .kpi-label { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+.card:hover {
+  box-shadow: var(--shadow);
+  border-color: var(--border-subtle);
+}
+
+.card h3 {
+  font-size: 15px;
+  font-weight: 700;
+  margin-bottom: 16px;
+  color: var(--text);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* ---------------- KPI Metric Cards ---------------- */
+.kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.kpi-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-sm);
+  padding: 18px 20px;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  position: relative;
+  overflow: hidden;
+}
+
+.kpi-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+  border-color: var(--border-focus);
+}
+
+.kpi-card::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: var(--border);
+  transition: background-color 0.2s ease;
+}
+
+.kpi-card .kpi-value {
+  font-size: 28px;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  color: var(--text);
+  line-height: 1.1;
+  font-family: var(--font-sans);
+}
+
+.kpi-card .kpi-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-muted);
+  margin-top: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* KPI Accents */
+.kpi-card.accent-danger::before { background: var(--danger); }
 .kpi-card.accent-danger .kpi-value { color: var(--danger); }
+
+.kpi-card.accent-warning::before { background: var(--warning); }
 .kpi-card.accent-warning .kpi-value { color: var(--warning); }
+
+.kpi-card.accent-success::before { background: var(--success); }
 .kpi-card.accent-success .kpi-value { color: var(--success); }
+
+.kpi-card.accent-info::before { background: var(--info); }
 .kpi-card.accent-info .kpi-value { color: var(--info); }
 
-.kv-list { display: grid; grid-template-columns: 140px 1fr; gap: 6px 12px; font-size: 13px; }
-.kv-list dt { color: var(--text-muted); }
-.kv-list dd { margin: 0; }
+/* ---------------- Key-Value List ---------------- */
+.kv-list {
+  display: grid;
+  grid-template-columns: 160px 1fr;
+  gap: 8px 16px;
+  font-size: 13.5px;
+  line-height: 1.5;
+}
 
-.risk-bar-track { width: 100%; height: 8px; background: #eef0f4; border-radius: 6px; overflow: hidden; }
-.risk-bar-fill { height: 100%; border-radius: 6px; }
+.kv-list dt {
+  color: var(--text-muted);
+  font-weight: 600;
+}
+
+.kv-list dd {
+  margin: 0;
+  color: var(--text);
+  font-weight: 500;
+}
+
+/* ---------------- Risk Progress Bars ---------------- */
+.risk-bar-track {
+  width: 100%;
+  height: 8px;
+  background: var(--surface-raised);
+  border-radius: var(--radius-full);
+  overflow: hidden;
+  border: 1px solid var(--border);
+}
+
+.risk-bar-fill {
+  height: 100%;
+  border-radius: var(--radius-full);
+  transition: width 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}

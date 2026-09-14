@@ -26,7 +26,12 @@ function statusBadge(status) {
 }
 
 function riskColor(classification) {
-  return { LOW: "#1f8a4c", MEDIUM: "#b8860b", HIGH: "#d1373f", CRITICAL: "#8c1c22" }[classification] || "#888";
+  return {
+    LOW: "var(--success)",
+    MEDIUM: "var(--warning)",
+    HIGH: "var(--danger)",
+    CRITICAL: "var(--danger)",
+  }[classification] || "var(--gray)";
 }
 
 function riskBar(score, classification) {

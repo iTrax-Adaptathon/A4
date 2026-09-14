@@ -1,12 +1,80 @@
-/* ---------------- Badges ---------------- */
+/* ---------------- Status Badges ---------------- */
 .badge {
-  display: inline-block; padding: 2px 9px; border-radius: 100px; font-size: 11px; font-weight: 700;
-  letter-spacing: 0.2px; white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 9px;
+  border-radius: var(--radius-full);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+  text-transform: uppercase;
+  white-space: nowrap;
+  line-height: 1.2;
+  border: 1px solid transparent;
+  transition: all 0.15s ease;
 }
-.badge-gray { background: #eef0f4; color: #566; }
-.badge-green { background: var(--success-light); color: var(--success); }
-.badge-red { background: var(--danger-light); color: var(--danger); }
-.badge-yellow { background: var(--warning-light); color: var(--warning); }
-.badge-blue { background: var(--info-light); color: var(--info); }
-.badge-primary { background: var(--primary-light); color: var(--primary-dark); }
-.badge-dot { position: absolute; top: 2px; right: 2px; width: 8px; height: 8px; border-radius: 50%; background: var(--danger); }
+
+.badge-gray {
+  background: var(--gray-light);
+  color: var(--gray);
+  border-color: var(--border);
+}
+
+.badge-green {
+  background: var(--success-light);
+  color: var(--success);
+  border-color: var(--success-border);
+}
+
+.badge-red {
+  background: var(--danger-light);
+  color: var(--danger);
+  border-color: var(--danger-border);
+}
+
+.badge-yellow {
+  background: var(--warning-light);
+  color: var(--warning);
+  border-color: var(--warning-border);
+}
+
+.badge-blue {
+  background: var(--info-light);
+  color: var(--info);
+  border-color: var(--info-border);
+}
+
+.badge-primary {
+  background: var(--primary-light);
+  color: var(--primary);
+  border-color: rgba(37, 99, 235, 0.25);
+}
+
+/* Notification / Alert Dot */
+.badge-dot {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--danger);
+  box-shadow: 0 0 0 2px var(--surface);
+  animation: pulse-dot 2s infinite;
+}
+
+@keyframes pulse-dot {
+  0% {
+    transform: scale(0.95);
+    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7);
+  }
+  70% {
+    transform: scale(1);
+    box-shadow: 0 0 0 6px rgba(239, 68, 68, 0);
+  }
+  100% {
+    transform: scale(0.95);
+    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0);
+  }
+}

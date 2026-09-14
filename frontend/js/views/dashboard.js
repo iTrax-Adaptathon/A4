@@ -17,8 +17,16 @@ Views.dashboard = {
 
     content.innerHTML = `
       <div class="page-header">
-        <h2>Dashboard</h2>
-        <div class="page-actions"><button class="btn" id="refresh-dash">Refresh</button></div>
+        <div>
+          <h2>Operational Dashboard</h2>
+          <p class="muted" style="margin: 4px 0 0 0; font-size: 13px;">Real-time system throughput, plant line status, and active alerts</p>
+        </div>
+        <div class="page-actions">
+          <button class="btn btn-primary" id="refresh-dash">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>
+            Refresh Metrics
+          </button>
+        </div>
       </div>
       <div class="kpi-grid">
         ${kpiCard("Active Orders", k.activeOrders)}
@@ -44,22 +52,26 @@ Views.dashboard = {
         <div class="card">
           <h3>Critical Alerts</h3>
           ${d.criticalAlertsList.length ? d.criticalAlertsList.map((a) => `
-            <div style="padding:8px 0;border-bottom:1px solid #f0f1f4">
-              <strong>[!] ${esc(a.type)}</strong><br/>
-              <span class="muted">${esc(a.message)}</span>
+            <div style="padding:10px 0;border-bottom:1px solid var(--border-subtle)">
+              <div style="display:flex;align-items:center;gap:6px;margin-bottom:2px">
+                <span class="badge badge-red">[!] ${esc(a.type)}</span>
+              </div>
+              <span class="muted" style="font-size:13px">${esc(a.message)}</span>
             </div>`).join("") : `<p class="muted">No critical alerts.</p>`}
         </div>
         <div class="card">
           <h3>Resource Conflicts</h3>
           ${d.resourceConflicts.length ? d.resourceConflicts.map((c) => `
-            <div style="padding:8px 0;border-bottom:1px solid #f0f1f4">${esc(c.message)}</div>`).join("") : `<p class="muted">No recent conflicts.</p>`}
+            <div style="padding:10px 0;border-bottom:1px solid var(--border-subtle);font-size:13px;color:var(--text)">
+              ${esc(c.message)}
+            </div>`).join("") : `<p class="muted">No recent conflicts.</p>`}
         </div>
       </div>
       ${(d.staleness.machines.length || d.staleness.runs.length) ? `
-      <div class="card">
-        <h3>Stale Data (Section 35.2)</h3>
-        ${d.staleness.machines.map((m) => `<div>Machine <strong>${esc(m.name)}</strong> -- no update since ${fmtDate(m.lastHeartbeatAt)}</div>`).join("")}
-        ${d.staleness.runs.map((r) => `<div>Run <strong>${esc(r.code)}</strong> -- no update since ${fmtDate(r.lastHeartbeatAt)}</div>`).join("")}
+      <div class="card" style="border-left: 4px solid var(--warning)">
+        <h3>Stale Telemetry Feed</h3>
+        ${d.staleness.machines.map((m) => `<div style="padding:4px 0;font-size:13px">Machine <strong>${esc(m.name)}</strong> -- no heartbeat since ${fmtDate(m.lastHeartbeatAt)}</div>`).join("")}
+        ${d.staleness.runs.map((r) => `<div style="padding:4px 0;font-size:13px">Run <strong>${esc(r.code)}</strong> -- no heartbeat since ${fmtDate(r.lastHeartbeatAt)}</div>`).join("")}
       </div>` : ""}
     `;
 
@@ -69,9 +81,9 @@ Views.dashboard = {
   statusBars(counts) {
     const total = Object.values(counts).reduce((a, b) => a + b, 0) || 1;
     return Object.entries(counts).map(([k, v]) => `
-      <div style="margin-bottom:8px">
-        <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:3px">
-          <span>${statusBadge(k)}</span><span class="muted">${v}</span>
+      <div style="margin-bottom:12px">
+        <div style="display:flex;justify-content:space-between;font-size:12.5px;margin-bottom:5px">
+          <span>${statusBadge(k)}</span><span class="muted" style="font-family:var(--font-mono);font-size:12px;font-weight:600">${v} (${Math.round((v / total) * 100)}%)</span>
         </div>
         <div class="risk-bar-track"><div class="risk-bar-fill" style="width:${(v / total) * 100}%;background:var(--primary)"></div></div>
       </div>`).join("") || `<p class="muted">No data.</p>`;

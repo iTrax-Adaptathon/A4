@@ -1,44 +1,75 @@
 /* ---------------- Event Timeline & Root-Cause Sequence ---------------- */
 .timeline-container {
-  margin-top: 14px;
-  border-left: 3px solid var(--border, #e2e8f0);
-  padding-left: 16px;
+  margin-top: 18px;
+  border-left: 2px solid var(--border);
+  padding-left: 20px;
   position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
 }
 
 .timeline-item {
-  margin-bottom: 14px;
   position: relative;
+  background: var(--surface-raised);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px 16px;
+  transition: all 0.15s ease;
+}
+
+.timeline-item:hover {
+  background: var(--surface);
+  border-color: var(--primary);
+  box-shadow: var(--shadow-sm);
 }
 
 .timeline-item .timeline-dot {
   position: absolute;
-  left: -22px;
-  top: 4px;
-  width: 10px;
-  height: 10px;
+  left: -27px;
+  top: 14px;
+  width: 12px;
+  height: 12px;
   border-radius: 50%;
-  box-shadow: 0 0 0 2px var(--surface, #ffffff);
+  box-shadow: 0 0 0 3px var(--bg);
+  background: var(--primary);
 }
-.timeline-item .timeline-dot.critical { background: var(--danger); }
-.timeline-item .timeline-dot.high { background: var(--warning); }
-.timeline-item .timeline-dot.info { background: var(--primary); }
-.timeline-item .timeline-dot.low { background: var(--info); }
+
+.timeline-item .timeline-dot.critical {
+  background: var(--danger);
+  box-shadow: 0 0 0 3px var(--bg), 0 0 8px rgba(239, 68, 68, 0.4);
+}
+
+.timeline-item .timeline-dot.high {
+  background: var(--warning);
+  box-shadow: 0 0 0 3px var(--bg), 0 0 8px rgba(217, 119, 6, 0.4);
+}
+
+.timeline-item .timeline-dot.info {
+  background: var(--primary);
+}
+
+.timeline-item .timeline-dot.low {
+  background: var(--info);
+}
 
 .timeline-item .timeline-meta {
-  font-size: 0.8em;
-  color: var(--text-muted, #718096);
-  font-weight: 500;
+  font-size: 11.5px;
+  color: var(--text-muted);
+  font-weight: 600;
+  font-family: var(--font-mono);
 }
 
 .timeline-item .timeline-title {
-  font-weight: 600;
-  margin-top: 2px;
-  font-size: 0.95em;
+  font-weight: 700;
+  margin-top: 4px;
+  font-size: 13.5px;
+  color: var(--text);
 }
 
 .timeline-item .timeline-detail {
-  font-size: 0.88em;
-  color: var(--text, #2d3748);
-  margin-top: 2px;
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin-top: 4px;
+  line-height: 1.5;
 }

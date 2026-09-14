@@ -1,22 +1,162 @@
+/**
+ * PCTS Design Tokens & CSS Custom Properties
+ * Comprehensive Dual-Theme (Light / Dark) System
+ */
 :root {
-  --bg: #f4f6f9;
+  /* Color Scheme */
+  color-scheme: light;
+
+  /* Surfaces & Backgrounds */
+  --bg: #f8fafc;
   --surface: #ffffff;
-  --border: #e1e5eb;
-  --text: #1c2530;
-  --text-muted: #6b7685;
-  --primary: #1f4fd8;
-  --primary-dark: #1638a3;
-  --primary-light: #e8edfd;
-  --danger: #d1373f;
-  --danger-light: #fbe9ea;
-  --warning: #b8860b;
-  --warning-light: #fdf3d9;
-  --success: #1f8a4c;
-  --success-light: #e5f6ec;
-  --info: #2477b3;
-  --info-light: #e4f2fb;
-  --gray: #8892a0;
-  --radius: 8px;
-  --shadow: 0 1px 3px rgba(20, 30, 50, 0.08), 0 1px 2px rgba(20, 30, 50, 0.06);
-  --sidebar-w: 240px;
+  --surface-raised: #f1f5f9;
+  --surface-hover: #f8fafc;
+  --surface-glass: rgba(255, 255, 255, 0.82);
+
+  /* Borders */
+  --border: #e2e8f0;
+  --border-subtle: #edf2f7;
+  --border-focus: #2563eb;
+
+  /* Typography */
+  --text: #0f172a;
+  --text-secondary: #334155;
+  --text-muted: #64748b;
+  --text-inverse: #ffffff;
+
+  /* Primary Brand */
+  --primary: #2563eb;
+  --primary-hover: #1d4ed8;
+  --primary-dark: #1e40af;
+  --primary-light: #eff6ff;
+  --primary-glow: rgba(37, 99, 235, 0.18);
+
+  /* Secondary Accent */
+  --accent: #6366f1;
+  --accent-light: #eef2ff;
+
+  /* Status Colors */
+  --danger: #ef4444;
+  --danger-hover: #dc2626;
+  --danger-light: #fef2f2;
+  --danger-border: #fecaca;
+
+  --warning: #d97706;
+  --warning-hover: #b45309;
+  --warning-light: #fffbeb;
+  --warning-border: #fde68a;
+
+  --success: #10b981;
+  --success-hover: #059669;
+  --success-light: #ecfdf5;
+  --success-border: #a7f3d0;
+
+  --info: #0284c7;
+  --info-hover: #0369a1;
+  --info-light: #f0f9ff;
+  --info-border: #bae6fd;
+
+  --gray: #64748b;
+  --gray-light: #f1f5f9;
+
+  /* Sidebar Tokens */
+  --sidebar-bg: #090e17;
+  --sidebar-border: #182234;
+  --sidebar-text: #94a3b8;
+  --sidebar-text-active: #ffffff;
+  --sidebar-hover: rgba(255, 255, 255, 0.05);
+  --sidebar-active-bg: rgba(37, 99, 235, 0.18);
+  --sidebar-active-border: #3b82f6;
+
+  /* Spacing, Radius & Geometry */
+  --sidebar-w: 260px;
+  --radius-sm: 6px;
+  --radius: 10px;
+  --radius-lg: 16px;
+  --radius-full: 9999px;
+
+  /* Shadows */
+  --shadow-sm: 0 1px 2px 0 rgba(15, 23, 42, 0.05);
+  --shadow: 0 4px 6px -1px rgba(15, 23, 42, 0.07), 0 2px 4px -2px rgba(15, 23, 42, 0.05);
+  --shadow-md: 0 10px 15px -3px rgba(15, 23, 42, 0.08), 0 4px 6px -4px rgba(15, 23, 42, 0.04);
+  --shadow-lg: 0 20px 25px -5px rgba(15, 23, 42, 0.1), 0 8px 10px -6px rgba(15, 23, 42, 0.05);
+
+  /* Typography */
+  --font-sans: 'Plus Jakarta Sans', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-mono: 'JetBrains Mono', 'SF Mono', Consolas, Monaco, monospace;
+}
+
+/* ==========================================================================
+   Dark Theme Overrides
+   ========================================================================== */
+:root[data-theme="dark"] {
+  color-scheme: dark;
+
+  /* Surfaces & Backgrounds */
+  --bg: #090d16;
+  --surface: #101624;
+  --surface-raised: #162032;
+  --surface-hover: #1c283f;
+  --surface-glass: rgba(16, 22, 36, 0.85);
+
+  /* Borders */
+  --border: #1e2a3e;
+  --border-subtle: #151f2e;
+  --border-focus: #3b82f6;
+
+  /* Typography */
+  --text: #f8fafc;
+  --text-secondary: #cbd5e1;
+  --text-muted: #94a3b8;
+  --text-inverse: #090d16;
+
+  /* Primary Brand */
+  --primary: #3b82f6;
+  --primary-hover: #60a5fa;
+  --primary-dark: #2563eb;
+  --primary-light: rgba(59, 130, 246, 0.15);
+  --primary-glow: rgba(59, 130, 246, 0.28);
+
+  /* Secondary Accent */
+  --accent: #818cf8;
+  --accent-light: rgba(99, 102, 241, 0.16);
+
+  /* Status Colors */
+  --danger: #f87171;
+  --danger-hover: #ef4444;
+  --danger-light: rgba(239, 68, 68, 0.16);
+  --danger-border: rgba(248, 113, 113, 0.35);
+
+  --warning: #fbbf24;
+  --warning-hover: #f59e0b;
+  --warning-light: rgba(245, 158, 11, 0.16);
+  --warning-border: rgba(251, 191, 36, 0.35);
+
+  --success: #34d399;
+  --success-hover: #10b981;
+  --success-light: rgba(16, 185, 129, 0.16);
+  --success-border: rgba(52, 211, 153, 0.35);
+
+  --info: #38bdf8;
+  --info-hover: #0ea5e9;
+  --info-light: rgba(14, 165, 233, 0.16);
+  --info-border: rgba(56, 189, 248, 0.35);
+
+  --gray: #94a3b8;
+  --gray-light: rgba(148, 163, 184, 0.12);
+
+  /* Sidebar Tokens in Dark Mode */
+  --sidebar-bg: #06090f;
+  --sidebar-border: #141b29;
+  --sidebar-text: #94a3b8;
+  --sidebar-text-active: #ffffff;
+  --sidebar-hover: rgba(255, 255, 255, 0.06);
+  --sidebar-active-bg: rgba(59, 130, 246, 0.2);
+  --sidebar-active-border: #3b82f6;
+
+  /* Dark Shadows */
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.35);
+  --shadow: 0 4px 10px 0 rgba(0, 0, 0, 0.4);
+  --shadow-md: 0 10px 22px -3px rgba(0, 0, 0, 0.5);
+  --shadow-lg: 0 20px 30px -5px rgba(0, 0, 0, 0.65);
 }

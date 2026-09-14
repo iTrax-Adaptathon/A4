@@ -416,7 +416,7 @@ Views.production = {
         <div class="card" style="border-left:4px solid var(--danger)">
           <h3>409 Conflict -- ${esc(conflict.code)}</h3>
           <p>${esc(conflict.message)}</p>
-          ${conflict.details && conflict.details.length ? `<pre style="background:#f7f8fb;padding:10px;border-radius:6px;font-size:12px;overflow-x:auto">${esc(JSON.stringify(conflict.details, null, 2))}</pre>` : ""}
+          ${conflict.details && conflict.details.length ? `<pre style="background:var(--surface-raised);border:1px solid var(--border);color:var(--text);padding:10px;border-radius:var(--radius-sm);font-size:12px;overflow-x:auto">${esc(JSON.stringify(conflict.details, null, 2))}</pre>` : ""}
           ${conflict.alternatives && conflict.alternatives.length ? `
             <div class="section-divider">Suggested Alternatives (Section 23.3)</div>
             ${conflict.alternatives.map((a) => `<div class="badge badge-yellow" style="margin-right:6px">${esc(JSON.stringify(a))}</div>`).join("")}
