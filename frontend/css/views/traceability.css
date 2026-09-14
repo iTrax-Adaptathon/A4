@@ -50,3 +50,82 @@
     flex-direction: column;
   }
 }
+
+/* ---------------- Lineage Graph Pipeline ---------------- */
+.lineage-graph-container {
+  margin: 16px 0;
+  overflow-x: auto;
+  background: var(--surface-raised);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 16px;
+}
+
+.lineage-pipeline {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  min-width: 780px;
+}
+
+.lineage-stage {
+  flex: 1;
+  min-width: 140px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.lineage-stage-title {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  color: var(--text-muted);
+  margin-bottom: 4px;
+}
+
+.lineage-node {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
+  cursor: pointer;
+  transition: all 0.18s ease;
+  box-shadow: var(--shadow-sm);
+}
+
+.lineage-node:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+  border-color: var(--primary);
+}
+
+.lineage-node.node-danger {
+  border: 2px solid var(--danger);
+  background: rgba(220, 38, 38, 0.05);
+}
+
+.lineage-node.node-warning {
+  border: 2px solid var(--warning);
+  background: rgba(217, 119, 6, 0.05);
+}
+
+.lineage-node.node-success {
+  border: 2px solid var(--success);
+  background: rgba(22, 163, 74, 0.05);
+}
+
+.lineage-node.node-primary {
+  border: 2px solid var(--primary);
+  background: rgba(37, 99, 235, 0.05);
+}
+
+.lineage-connector {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 80px;
+  color: var(--border-strong);
+  font-size: 18px;
+}
