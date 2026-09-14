@@ -86,7 +86,27 @@ def list_operators(db: OrmSession = Depends(get_db), user=Depends(get_current_us
     ops = db.query(models.Operator).all()
     out = []
     for op in ops:
-        d = to_dict(op, {"name": op.user.name if op.user else None, "email": op.user.email if op.user else None})
+        active_res = (
+            db.query(models.ResourceReservation)
+            .join(models.ProductionRun, models.ResourceReservation.run_id == models.ProductionRun.id)
+            .filter(
+                models.ResourceReservation.resource_type == "OPERATOR",
+                models.ResourceReservation.resource_id == op.id,
+                models.ResourceReservation.status == "ACTIVE",
+                models.ProductionRun.status.in_(["RUNNING", "PAUSED", "SCHEDULED"]),
+            )
+            .first()
+        )
+        active_run = active_res.run if active_res else None
+        live_status = "ASSIGNED" if (active_run and active_run.status == "RUNNING") else ("SCHEDULED" if active_run else "AVAILABLE")
+        d = to_dict(op, {
+            "name": op.user.name if op.user else None,
+            "email": op.user.email if op.user else None,
+            "userStatus": op.user.status if op.user else "ACTIVE",
+            "liveStatus": live_status,
+            "activeRunCode": active_run.code if active_run else None,
+            "activeMachineName": active_run.machine.name if (active_run and active_run.machine) else None,
+        })
         d["skills"] = [to_dict(s, {"processName": s.process.name if s.process else None}) for s in op.skills]
         out.append(d)
     return {"items": out}

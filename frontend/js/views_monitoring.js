@@ -4,22 +4,64 @@ var Views = window.Views || {};
 Views.monitoring = {
 
   async live() {
-    const [runsResp, machinesResp] = await Promise.all([Api.get("/v1/runs?status_=RUNNING"), Api.get("/v1/machines")]);
+    const [runsResp, machinesResp, operatorsResp, batchesResp] = await Promise.all([
+      Api.get("/v1/runs?status_=RUNNING"),
+      Api.get("/v1/machines"),
+      Api.get("/v1/operators"),
+      Api.get("/v1/batches"),
+    ]);
     const content = document.getElementById("content");
+    const runningMachines = machinesResp.items.filter((m) => m.status === "RUNNING");
+    const activeBatches = batchesResp.items.filter((b) => ["AVAILABLE", "ON_HOLD", "RESERVED", "IN_USE"].includes(b.status));
+
     content.innerHTML = `
-      <div class="page-header"><h2>Live Production</h2></div>
+      <div class="page-header"><h2>Live Production &amp; Resource Status</h2></div>
+      <p class="flow-note">Real-time status tracking for Machines, Active Production Runs, Operators, and Material Batches.</p>
       <div class="grid-2">
-        <div class="card"><h3>Running Machines</h3>
+        <div class="card">
+          <h3>Running Machines (${runningMachines.length})</h3>
           ${dataTable([
-            { label: "Machine", key: "name" }, { label: "Status", render: (m) => `${statusBadge(m.status)} ${m.isStale ? '<span class="badge badge-yellow">STALE</span>' : ""}` },
-            { label: "Last Update", render: (m) => timeAgo(m.lastHeartbeatAt) },
-          ], machinesResp.items.filter((m) => m.status === "RUNNING"), { emptyText: "No machines currently running." })}
+            { label: "Machine", key: "name" },
+            { label: "Location", key: "location" },
+            { label: "Status", render: (m) => `${statusBadge(m.status)} ${m.isStale ? '<span class="badge badge-yellow">STALE</span>' : ""}` },
+            { label: "Last Heartbeat", render: (m) => timeAgo(m.lastHeartbeatAt) },
+          ], runningMachines, { emptyText: "No machines currently running." })}
         </div>
-        <div class="card"><h3>Active Runs</h3>
+        <div class="card">
+          <h3>Active Production Runs (${runsResp.items.length})</h3>
           ${dataTable([
-            { label: "Run", key: "code" }, { label: "Order", key: "orderCode" }, { label: "Machine", key: "machineName" },
+            { label: "Run", render: (r) => `<strong>${esc(r.code)}</strong>` },
+            { label: "Order", key: "orderCode" },
+            { label: "Machine", key: "machineName" },
+            { label: "Operator", render: (r) => esc(r.operatorName || "-") },
+            { label: "Materials", render: (r) => esc(r.materialsSummary || "-") },
             { label: "Status", render: (r) => `${statusBadge(r.status)} ${r.isStale ? '<span class="badge badge-yellow">STALE</span>' : ""}` },
           ], runsResp.items, { emptyText: "No active runs." })}
+        </div>
+      </div>
+      <div class="grid-2" style="margin-top:16px">
+        <div class="card">
+          <h3>Live Operator Status (${operatorsResp.items.length})</h3>
+          ${dataTable([
+            { label: "Operator", key: "name" },
+            { label: "Code", key: "employeeCode" },
+            { label: "Shift", key: "shiftPattern" },
+            { label: "Status", render: (o) => {
+              if (o.liveStatus === "ASSIGNED") return `<span class="badge badge-green">RUNNING (${esc(o.activeRunCode)} on ${esc(o.activeMachineName || 'Mach')})</span>`;
+              if (o.liveStatus === "SCHEDULED") return `<span class="badge badge-blue">SCHEDULED (${esc(o.activeRunCode)})</span>`;
+              return `<span class="badge badge-gray">AVAILABLE (IDLE)</span>`;
+            }},
+          ], operatorsResp.items, { emptyText: "No operators registered." })}
+        </div>
+        <div class="card">
+          <h3>Material Batches &amp; Hold Status</h3>
+          ${dataTable([
+            { label: "Lot Number", render: (b) => `<strong>${esc(b.lotNumber)}</strong>` },
+            { label: "Material", key: "materialName" },
+            { label: "Available", render: (b) => `${fmtNum(b.availableQuantity)} ${esc(b.unitOfMeasure || '')}` },
+            { label: "Reserved", render: (b) => `${fmtNum(b.reservedQuantity)}` },
+            { label: "Status", render: (b) => statusBadge(b.status) },
+          ], activeBatches, { emptyText: "No active material batches." })}
         </div>
       </div>
     `;

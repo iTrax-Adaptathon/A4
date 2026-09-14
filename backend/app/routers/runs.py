@@ -29,9 +29,12 @@ def list_runs(status_: str = None, machine_id: str = None, db: OrmSession = Depe
     out = []
     for r in runs:
         out.append(to_dict(r, {
-            "orderCode": r.order.code if r.order else None, "machineName": r.machine.name if r.machine else None,
+            "orderCode": r.order.code if r.order else None,
+            "machineName": r.machine.name if r.machine else None,
             "operatorName": r.operator.user.name if r.operator and r.operator.user else None,
+            "operatorCode": r.operator.employee_code if r.operator else None,
             "processStepName": r.process_step.name if r.process_step else None,
+            "materialsSummary": ", ".join(f"{c.batch.lot_number if c.batch else 'Lot'} ({c.material.name if c.material else 'Mat'})" for c in r.consumptions),
         }))
     return {"items": out}
 
