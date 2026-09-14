@@ -272,7 +272,7 @@ const App = {
 
   renderNav() {
     const sidebar = document.getElementById("sidebar");
-    let html = `<div style="padding: 4px 10px 10px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px; color: #64748b;">Navigation</div>`;
+    let html = `<div class="sidebar-header-label">Navigation</div>`;
     for (const group of this.NAV) {
       if (group.perm && !Auth.hasPerm(...group.perm)) continue;
       const accessibleItems = group.items.filter((it) => !it.perm || Auth.hasPerm(...it.perm));

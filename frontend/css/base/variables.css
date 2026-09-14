@@ -59,14 +59,19 @@
   --gray: #64748b;
   --gray-light: #f1f5f9;
 
-  /* Sidebar Tokens */
-  --sidebar-bg: #090e17;
-  --sidebar-border: #182234;
-  --sidebar-text: #94a3b8;
-  --sidebar-text-active: #ffffff;
-  --sidebar-hover: rgba(255, 255, 255, 0.05);
-  --sidebar-active-bg: rgba(37, 99, 235, 0.18);
-  --sidebar-active-border: #3b82f6;
+  /* Sidebar Tokens (Light Theme) */
+  --sidebar-bg: #ffffff;
+  --sidebar-border: #e2e8f0;
+  --sidebar-text: #475569;
+  --sidebar-text-hover: #0f172a;
+  --sidebar-text-active: #1d4ed8;
+  --sidebar-hover: #f1f5f9;
+  --sidebar-active-bg: #eff6ff;
+  --sidebar-active-border: #2563eb;
+  --sidebar-icon-bg: #f8fafc;
+  --sidebar-icon-color: #64748b;
+  --sidebar-badge-bg: #f1f5f9;
+  --sidebar-badge-text: #64748b;
 
   /* Spacing, Radius & Geometry */
   --sidebar-w: 260px;
@@ -146,13 +151,18 @@
   --gray-light: rgba(148, 163, 184, 0.12);
 
   /* Sidebar Tokens in Dark Mode */
-  --sidebar-bg: #06090f;
-  --sidebar-border: #141b29;
+  --sidebar-bg: #090d16;
+  --sidebar-border: #182234;
   --sidebar-text: #94a3b8;
+  --sidebar-text-hover: #f8fafc;
   --sidebar-text-active: #ffffff;
-  --sidebar-hover: rgba(255, 255, 255, 0.06);
-  --sidebar-active-bg: rgba(59, 130, 246, 0.2);
+  --sidebar-hover: rgba(255, 255, 255, 0.05);
+  --sidebar-active-bg: rgba(59, 130, 246, 0.18);
   --sidebar-active-border: #3b82f6;
+  --sidebar-icon-bg: rgba(255, 255, 255, 0.05);
+  --sidebar-icon-color: #94a3b8;
+  --sidebar-badge-bg: rgba(255, 255, 255, 0.08);
+  --sidebar-badge-text: #94a3b8;
 
   /* Dark Shadows */
   --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.35);
