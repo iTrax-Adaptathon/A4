@@ -6,19 +6,59 @@ var Views = window.Views || {};
 
 Views.monitoring = Object.assign(Views.monitoring || {}, {
   async live() {
-    const [runsResp, machinesResp, operatorsResp, batchesResp] = await Promise.all([
+    const [runsResp, machinesResp, operatorsResp, batchesResp, dashResp] = await Promise.all([
       Api.get("/v1/runs?status_=RUNNING"),
       Api.get("/v1/machines"),
       Api.get("/v1/operators"),
       Api.get("/v1/batches"),
+      Api.get("/v1/dashboard"),
     ]);
     const content = document.getElementById("content");
     const runningMachines = machinesResp.items.filter((m) => m.status === "RUNNING");
     const activeBatches = batchesResp.items.filter((b) => ["AVAILABLE", "ON_HOLD", "RESERVED", "IN_USE"].includes(b.status));
+    const bottlenecks = dashResp.developingBottlenecks || [];
 
     content.innerHTML = `
       <div class="page-header"><h2>Live Production &amp; Resource Status</h2></div>
       <p class="flow-note">Real-time status tracking for Machines, Active Production Runs, Operators, and Material Batches.</p>
+      ${bottlenecks.length ? `
+        <div class="line-stop-banner" style="margin-bottom:20px;padding:16px 20px;background:rgba(220,38,38,0.07);border:1px solid rgba(220,38,38,0.3);border-left:5px solid var(--danger);border-radius:var(--radius-md)">
+          <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px">
+            <div style="display:flex;align-items:center;gap:10px">
+              <span style="font-size:22px">&#9888;&#65039;</span>
+              <div>
+                <h3 style="margin:0;color:var(--danger);font-size:15px;font-weight:700">Active Line-Stop Risk / Developing Bottleneck</h3>
+                <p style="margin:2px 0 0 0;font-size:13px;color:var(--text)">Floor supervisor alert -- resources impacted by holds or overdue orders:</p>
+              </div>
+            </div>
+            <span class="badge badge-red">${bottlenecks.length} Active Bottleneck${bottlenecks.length > 1 ? 's' : ''}</span>
+          </div>
+          <div style="margin-top:12px;display:flex;flex-direction:column;gap:10px">
+            ${bottlenecks.map((b) => `
+              <div style="background:var(--surface);padding:12px 14px;border-radius:var(--radius-sm);border:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px">
+                <div>
+                  <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+                    <strong>Run ${esc(b.runCode)}</strong> ${statusBadge(b.runStatus)}
+                    &bull; Machine: <strong>${esc(b.machineName || 'None')}</strong> ${b.machineStatus ? statusBadge(b.machineStatus) : ''}
+                    &bull; Operator: <strong>${esc(b.operatorName || 'Unassigned')}${b.operatorCode ? ` (${esc(b.operatorCode)})` : ''}</strong>
+                    ${b.orderCode ? `&bull; Order: <strong>${esc(b.orderCode)}</strong> (${esc(b.productName || '')}) ${b.isOverdue ? '<span class="badge badge-red">OVERDUE</span>' : ''}` : ''}
+                  </div>
+                  ${b.heldBatches && b.heldBatches.length ? `
+                    <div style="margin-top:6px;font-size:13px;color:var(--danger)">
+                      <strong>Root Cause:</strong> Material Lot <strong>${b.heldBatches.map(hb => esc(hb.lotNumber)).join(', ')}</strong> (${b.heldBatches.map(hb => esc(hb.materialName)).join(', ')}) is <span class="badge badge-red">ON_HOLD</span> (${b.heldBatches.reduce((acc, x) => acc + x.quantityReserved, 0)} reserved)
+                    </div>
+                  ` : ''}
+                </div>
+                <div>
+                  <button class="btn btn-sm btn-primary" data-trace-jump-type="${esc(b.rootCauseType)}" data-trace-jump-id="${esc(b.rootCauseId)}">
+                    Diagnose in Traceability Explorer &rarr;
+                  </button>
+                </div>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+      ` : ''}
       <div class="grid-2">
         <div class="card">
           <h3>Running Machines (${runningMachines.length})</h3>
@@ -67,6 +107,18 @@ Views.monitoring = Object.assign(Views.monitoring || {}, {
         </div>
       </div>
     `;
+
+    content.querySelectorAll("[data-trace-jump-type]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const t = btn.dataset.traceJumpType;
+        const id = btn.dataset.traceJumpId;
+        if (Views.traceability && Views.traceability.openTraceModal) {
+          Views.traceability.openTraceModal(t, id);
+        } else {
+          window.location.hash = "#/traceability";
+        }
+      });
+    });
   },
 
   // ---------------- Alerts (Sections 33-34) ----------------

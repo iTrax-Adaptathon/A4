@@ -32,6 +32,52 @@ def dashboard(db: OrmSession = Depends(get_db), user: models.User = Depends(get_
     stale_machines = [m for m in machines if m.is_stale]
     stale_runs = db.query(models.ProductionRun).filter(models.ProductionRun.is_stale == True).all()  # noqa: E712
 
+    # Identify developing line-stop bottlenecks (runs impacted by held batches, faulted equipment, or overdue orders)
+    active_runs = db.query(models.ProductionRun).filter(
+        models.ProductionRun.status.in_(["SCHEDULED", "RUNNING", "PAUSED", "ON_HOLD", "MATERIAL_SUBSTITUTION_PENDING"])
+    ).all()
+    now_utc = dt.datetime.utcnow()
+    developing_bottlenecks = []
+    for r in active_runs:
+        held_batches = [
+            {
+                "batchId": c.batch_id,
+                "lotNumber": c.batch.lot_number if c.batch else None,
+                "materialName": c.material.name if c.material else None,
+                "quantityReserved": float(c.quantity_reserved or 0),
+                "status": c.batch.status if c.batch else None,
+            }
+            for c in r.consumptions if c.batch and c.batch.status == "ON_HOLD"
+        ]
+        is_machine_issue = bool(r.machine and (r.machine.status in ("FAULT", "MAINTENANCE") or r.machine.is_stale))
+        is_order_overdue = bool(r.order and r.order.due_date and r.order.due_date < now_utc)
+        is_sub_needed = r.status in ("MATERIAL_SUBSTITUTION_PENDING", "ON_HOLD")
+
+        if held_batches or is_machine_issue or is_order_overdue or is_sub_needed:
+            severity = "CRITICAL" if held_batches or (r.machine and r.machine.status == "FAULT") else "HIGH"
+            root_cause_type = "MATERIAL_BATCH" if held_batches else ("MACHINE" if is_machine_issue else "PRODUCTION_ORDER")
+            root_cause_id = held_batches[0]["batchId"] if held_batches else (r.machine_id if is_machine_issue else r.order_id)
+            developing_bottlenecks.append({
+                "runId": r.id,
+                "runCode": r.code,
+                "runStatus": r.status,
+                "orderId": r.order_id,
+                "orderCode": r.order.code if r.order else None,
+                "productName": r.order.product_name if r.order else None,
+                "isOverdue": is_order_overdue,
+                "dueDate": r.order.due_date.isoformat() if r.order and r.order.due_date else None,
+                "machineId": r.machine_id,
+                "machineName": r.machine.name if r.machine else None,
+                "machineStatus": r.machine.status if r.machine else None,
+                "operatorId": r.operator_id,
+                "operatorName": r.operator.user.name if r.operator and r.operator.user else None,
+                "operatorCode": r.operator.employee_code if r.operator else None,
+                "heldBatches": held_batches,
+                "severity": severity,
+                "rootCauseType": root_cause_type,
+                "rootCauseId": root_cause_id,
+            })
+
     return {
         "kpis": {
             "activeOrders": len([o for o in orders if o.status in ("APPROVED", "READY", "RUNNING", "DELAYED")]),
@@ -43,6 +89,7 @@ def dashboard(db: OrmSession = Depends(get_db), user: models.User = Depends(get_
             "delayedOrders": len(delayed_orders),
             "openIncidents": open_incidents,
         },
+        "developingBottlenecks": developing_bottlenecks,
         "productionStatus": dict(status_counts),
         "machineStatus": dict(machine_counts),
         "criticalAlertsList": to_list(critical_alerts),
