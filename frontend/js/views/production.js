@@ -134,10 +134,11 @@ Views.production = {
       if (r.status === "RUNNING") { actions.push(["Pause", "pause"], ["Place On Hold", "hold"], ["Heartbeat / Confirm Running", "heartbeat"]); }
       if (r.status === "PAUSED") actions.push(["Resume", "resume"], ["Place On Hold", "hold"]);
       if (r.status === "ON_HOLD") actions.push(["Release Hold (Resume)", "release-hold"], ["Cancel", "cancel"]);
+      if (["RUNNING", "PAUSED", "ON_HOLD"].includes(r.status)) actions.push(["Substitute / Reallocate Material...", "request-sub"]);
       if (r.status === "MATERIAL_SUBSTITUTION_PENDING" && Auth.hasPerm("APPROVE_ORDERS", "MANAGE_INCIDENTS")) actions.push(["Approve Substitute Batch", "substitute"]);
       if (r.status === "PARTIALLY_COMPLETED") { actions.push(["Resume Remaining", "resume-partial"]); if (Auth.hasPerm("APPROVE_ORDERS")) actions.push(["Waive Remaining -> Complete", "waive"]); }
       if (r.status === "SCRAP_REWORK_REVIEW" && Auth.hasPerm("RELEASE_HOLD", "APPROVE_ORDERS")) actions.push(["Dispose (Rework/Scrap)", "dispose"]);
-      if (r.status === "RUNNING") { actions.push(["Partial Complete...", "partial"], ["Complete Run...", "complete"], ["Request Material Substitution...", "request-sub"]); }
+      if (r.status === "RUNNING") { actions.push(["Partial Complete...", "partial"], ["Complete Run...", "complete"]); }
       if (["SCHEDULED", "ON_HOLD"].includes(r.status)) actions.push(["Cancel", "cancel"]);
     }
     openModal({
@@ -154,6 +155,7 @@ Views.production = {
         ${dataTable([
           { label: "Batch", key: "lotNumber" }, { label: "Material", key: "materialName" }, { label: "Role", key: "role" },
           { label: "Reserved", render: (c) => fmtNum(c.quantityReserved) }, { label: "Consumed", render: (c) => c.quantityConsumed !== null ? fmtNum(c.quantityConsumed) : "-" },
+          { label: "", render: (c) => canExec && ["RUNNING", "PAUSED", "ON_HOLD", "MATERIAL_SUBSTITUTION_PENDING"].includes(r.status) ? `<button class="btn btn-sm" data-sub-mat="${c.materialId || ''}" data-sub-qty="${Math.max(0, (c.quantityReserved || 0) - (c.quantityConsumed || 0))}">Substitute</button>` : "" },
         ], r.consumptions, { emptyText: "No material consumption recorded." })}
         <div class="section-divider">Product Batches</div>
         ${dataTable([
@@ -169,6 +171,10 @@ Views.production = {
         document.getElementById("close-btn").onclick = closeModal;
         openModal.currentRun = r;
         document.querySelectorAll("[data-act]").forEach((b) => b.addEventListener("click", () => this.runAction(r, b.dataset.act)));
+        document.querySelectorAll("[data-sub-mat]").forEach((b) => b.addEventListener("click", () => {
+          closeModal();
+          void this.requestSubstitutionModal(r, b.dataset.subMat, parseFloat(b.dataset.subQty) || null);
+        }));
       },
     });
   },
@@ -224,53 +230,301 @@ Views.production = {
     });
   },
 
-  requestSubstitutionModal(run) {
+  async requestSubstitutionModal(run, preselectedMaterialId = null, prefilledQty = null) {
+    let fullRun = run;
+    if (!fullRun.consumptions) {
+      try {
+        fullRun = await Api.get(`/v1/runs/${run.id}`);
+      } catch (_) {
+        fullRun = run;
+      }
+    }
+
+    let materials = [];
+    try {
+      const matResp = await Api.get("/v1/materials");
+      materials = matResp.items || [];
+    } catch (_) {}
+
+    const consumedMaterials = [];
+    const seenMatIds = new Set();
+    if (fullRun.consumptions && fullRun.consumptions.length) {
+      fullRun.consumptions.forEach((c) => {
+        const mId = c.materialId || c.material_id;
+        if (!mId) return;
+        const remaining = Math.max(0, (c.quantityReserved || 0) - (c.quantityConsumed || 0));
+        seenMatIds.add(mId);
+        consumedMaterials.push({
+          id: mId,
+          name: c.materialName || c.material_name || "Material",
+          lotNumber: c.lotNumber || c.lot_number || "Unknown",
+          remaining: remaining > 0 ? remaining : (c.quantityReserved || 1),
+          currentRole: c.role || "PRIMARY",
+        });
+      });
+    }
+
+    const otherMaterials = materials.filter((m) => !seenMatIds.has(m.id));
+
+    const defaultMat = preselectedMaterialId
+      ? (consumedMaterials.find((m) => m.id === preselectedMaterialId) || materials.find((m) => m.id === preselectedMaterialId))
+      : (consumedMaterials[0] || materials[0] || null);
+
+    const defaultQty = prefilledQty !== null && prefilledQty !== undefined
+      ? prefilledQty
+      : (defaultMat && defaultMat.remaining ? defaultMat.remaining : (fullRun.quantityPlanned || 1));
+
     openModal({
-      title: "Request Material Substitution",
+      title: `Material Reallocation & Substitution -- Run ${esc(fullRun.code || fullRun.id.substring(0, 8))}`,
+      wide: true,
       bodyHtml: `
-        <form id="sub-form">
-          <div class="form-grid cols-1">
-            <div class="field"><label>Material ID</label><input name="materialId" placeholder="paste material ID" required /></div>
-            <div class="field"><label>Remaining Quantity Needed</label><input name="remainingQuantity" type="number" step="any" required /></div>
+        <div style="background:var(--surface-raised);padding:12px;border-radius:var(--radius-sm);border:1px solid var(--border);margin-bottom:16px">
+          <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+            <div>
+              <strong>Run: ${esc(fullRun.code || fullRun.id)}</strong> &bull;
+              Machine: <strong>${esc(fullRun.machineName || "-")}</strong> &bull;
+              Status: ${statusBadge(fullRun.status)}
+            </div>
+            <span class="muted" style="font-size:12px">Section 16.2 Substitution Policy</span>
           </div>
-          <p class="form-help">Tip: open Resources &rarr; Materials to copy the material ID. The system tries automatic FEFO/FIFO reallocation first (Section 16.2); if none qualifies, the run enters MATERIAL_SUBSTITUTION_PENDING for approval.</p>
-        </form>`,
-      footerHtml: `<button class="btn" id="cancel-btn">Cancel</button><button class="btn btn-primary" id="save-btn">Submit</button>`,
+          <p class="muted" style="font-size:12px;margin:6px 0 0 0">
+            If allocated material is on hold, defective, or exhausted, trigger automated FEFO/FIFO reallocation or select an inspected replacement batch.
+          </p>
+        </div>
+
+        <form id="sub-flow-form">
+          <div class="field" style="margin-bottom:12px">
+            <label style="font-weight:600">Material to Replace / Reallocate</label>
+            <select id="sub-material-select" name="materialId" class="input" style="width:100%;font-size:13px">
+              ${consumedMaterials.length ? `<optgroup label="Allocated in this Run">
+                ${consumedMaterials.map((m) => `<option value="${esc(m.id)}" data-rem="${m.remaining}" ${defaultMat && defaultMat.id === m.id ? "selected" : ""}>${esc(m.name)} (Current Lot: ${esc(m.lotNumber)}, Needed: ${fmtNum(m.remaining)})</option>`).join("")}
+              </optgroup>` : ""}
+              ${otherMaterials.length ? `<optgroup label="Other Catalog Materials">
+                ${otherMaterials.map((m) => `<option value="${esc(m.id)}" data-rem="1" ${defaultMat && defaultMat.id === m.id ? "selected" : ""}>${esc(m.name)} (${esc(m.unitOfMeasure || 'EA')} - Avail: ${fmtNum(m.totalAvailable || 0)})</option>`).join("")}
+              </optgroup>` : ""}
+            </select>
+          </div>
+
+          <div class="field" style="margin-bottom:16px">
+            <label style="font-weight:600">Remaining Quantity Required</label>
+            <input id="sub-qty-input" name="remainingQuantity" type="number" step="any" required value="${defaultQty}" style="width:100%" />
+            <span class="muted" style="font-size:11px">Quantity required to complete production without starving the line.</span>
+          </div>
+
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:16px">
+            <div style="border:1px solid var(--border);border-radius:var(--radius-sm);padding:12px;background:var(--surface)">
+              <div style="font-weight:600;margin-bottom:4px">Option 1: 1-Click Auto-Reallocate</div>
+              <p class="muted" style="font-size:12px;margin-bottom:10px">Automatically scan available inventory and allocate the best eligible batches according to First-Expired First-Out (FEFO) rules.</p>
+              <button class="btn btn-primary" type="button" id="btn-auto-sub" style="width:100%">Auto-Reallocate (FEFO/FIFO)</button>
+            </div>
+            <div style="border:1px solid var(--border);border-radius:var(--radius-sm);padding:12px;background:var(--surface)">
+              <div style="font-weight:600;margin-bottom:4px">Option 2: Manual Batch Selection</div>
+              <p class="muted" style="font-size:12px;margin-bottom:10px">Inspect all available warehouse batches with lot number, storage location, and shelf life to assign a replacement batch.</p>
+              <button class="btn" type="button" id="btn-manual-sub" style="width:100%">Select Batch &rarr;</button>
+            </div>
+          </div>
+        </form>
+      `,
+      footerHtml: `<button class="btn" id="cancel-sub-btn">Close</button>`,
       onMount: () => {
-        document.getElementById("cancel-btn").onclick = closeModal;
-        document.getElementById("save-btn").onclick = async () => {
-          const data = formToObject(document.getElementById("sub-form"));
+        const sel = document.getElementById("sub-material-select");
+        const qtyInput = document.getElementById("sub-qty-input");
+        const cancelBtn = document.getElementById("cancel-sub-btn");
+        const autoBtn = document.getElementById("btn-auto-sub");
+        const manualBtn = document.getElementById("btn-manual-sub");
+
+        cancelBtn.onclick = closeModal;
+
+        sel.addEventListener("change", () => {
+          const opt = sel.selectedOptions[0];
+          if (opt && opt.dataset.rem) {
+            qtyInput.value = opt.dataset.rem;
+          }
+        });
+
+        autoBtn.onclick = async () => {
+          const matId = sel.value;
+          const qty = parseFloat(qtyInput.value);
+          if (!matId || isNaN(qty) || qty <= 0) {
+            toast("Please provide a valid material and positive quantity.", "error");
+            return;
+          }
+          autoBtn.disabled = true;
+          autoBtn.textContent = "Reallocating...";
           try {
-            const res = await Api.post(`/v1/runs/${run.id}/material-substitution/request`, data);
-            toast(res.automatic ? "Automatic substitution applied." : "No automatic substitute -- pending approval.", "success");
-            closeModal(); App.route();
-          } catch (err) { notifyError(err); }
+            const res = await Api.post(`/v1/runs/${fullRun.id}/material-substitution/request`, {
+              materialId: matId,
+              remainingQuantity: qty,
+            });
+            if (res.automatic) {
+              const details = res.allocations && res.allocations.length
+                ? res.allocations.map((a) => `${a.quantity} from lot ${a.lotNumber}`).join(", ")
+                : "Eligible lot allocated";
+              toast(`Automatic substitution applied: ${details}`, "success");
+              closeModal();
+              App.route();
+            } else {
+              toast(`No automated FEFO lot with full quantity found (Shortfall: ${fmtNum(res.shortfall || 0)}). Opening manual batch selector...`, "warning");
+              closeModal();
+              void this.approveSubstitutionModal(fullRun, matId, qty);
+            }
+          } catch (err) {
+            notifyError(err);
+            autoBtn.disabled = false;
+            autoBtn.textContent = "Auto-Reallocate (FEFO/FIFO)";
+          }
+        };
+
+        manualBtn.onclick = () => {
+          const matId = sel.value;
+          const qty = parseFloat(qtyInput.value) || 1;
+          closeModal();
+          void this.approveSubstitutionModal(fullRun, matId, qty);
         };
       },
     });
   },
 
-  approveSubstitutionModal(run) {
+  async approveSubstitutionModal(run, preselectedMaterialId = null, suggestedQty = null) {
+    let fullRun = run;
+    if (!fullRun.consumptions) {
+      try {
+        fullRun = await Api.get(`/v1/runs/${run.id}`);
+      } catch (_) {
+        fullRun = run;
+      }
+    }
+
+    let batches = [];
+    try {
+      const resp = await Api.get("/v1/batches?status=AVAILABLE");
+      batches = resp.items || [];
+    } catch (_) {}
+
+    if (preselectedMaterialId) {
+      batches.sort((a, b) => {
+        const aMatch = (a.materialId || a.material_id) === preselectedMaterialId ? 0 : 1;
+        const bMatch = (b.materialId || b.material_id) === preselectedMaterialId ? 0 : 1;
+        if (aMatch !== bMatch) return aMatch - bMatch;
+        return (a.expiryDate || "").localeCompare(b.expiryDate || "");
+      });
+    }
+
+    const defaultQty = suggestedQty !== null && suggestedQty !== undefined
+      ? suggestedQty
+      : (fullRun.quantityPlanned || 1);
+
     openModal({
-      title: "Approve Material Substitution",
+      title: `Select & Approve Substitute Batch -- Run ${esc(fullRun.code || fullRun.id.substring(0, 8))}`,
+      wide: true,
       bodyHtml: `
         <form id="approve-sub-form">
-          <div class="form-grid cols-1">
-            <div class="field"><label>Substitute Batch ID</label><input name="substituteBatchId" required /></div>
-            <div class="field"><label>Quantity</label><input name="quantity" type="number" step="any" required /></div>
-          </div>
-        </form>`,
-      footerHtml: `<button class="btn" id="cancel-btn">Cancel</button><button class="btn btn-primary" id="save-btn">Approve</button>`,
+          <p class="flow-note">
+            Assign an inspected, AVAILABLE warehouse batch to replace unusable material and resume the production run.
+          </p>
+
+          ${batches.length === 0 ? `
+            <div class="empty-state" style="color:var(--danger)">
+              No AVAILABLE material batches currently in inventory. Receive or inspect new batches in Resources &rarr; Materials first.
+            </div>
+          ` : `
+            <div class="field" style="margin-bottom:12px">
+              <label style="font-weight:600">Available Substitute Batch</label>
+              <select id="sub-batch-select" name="substituteBatchId" class="input" style="width:100%;font-size:13px" required>
+                ${batches.map((b) => {
+                  const bMatId = b.materialId || b.material_id;
+                  const isMatch = preselectedMaterialId && bMatId === preselectedMaterialId;
+                  return `
+                    <option value="${esc(b.id)}" data-avail="${b.availableQuantity}" data-lot="${esc(b.lotNumber)}" data-mat="${esc(b.materialName || 'Material')}" data-exp="${fmtDate(b.expiryDate) || 'No expiry'}" data-loc="${esc(b.storageLocation || 'Warehouse')}" ${isMatch ? "selected" : ""}>
+                      ${isMatch ? "[Target Match] " : ""}Lot ${esc(b.lotNumber)} &bull; ${esc(b.materialName || 'Material')} &bull; Avail: ${fmtNum(b.availableQuantity)} ${esc(b.unitOfMeasure || '')} &bull; Exp: ${fmtDate(b.expiryDate) || 'N/A'}
+                    </option>
+                  `;
+                }).join("")}
+              </select>
+            </div>
+
+            <div id="batch-preview-box" style="background:var(--surface-raised);padding:10px 14px;border-radius:var(--radius-sm);border:1px solid var(--border);margin-bottom:14px;font-size:12px">
+              <div style="font-weight:600;margin-bottom:6px">Selected Batch Details: <span id="prev-lot" style="color:var(--primary)">-</span></div>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
+                <div>Material: <strong id="prev-mat">-</strong></div>
+                <div>Storage Location: <strong id="prev-loc">-</strong></div>
+                <div>Available Quantity: <strong id="prev-avail" style="color:var(--success)">-</strong></div>
+                <div>Shelf Life / Expiry: <strong id="prev-exp">-</strong></div>
+              </div>
+            </div>
+
+            <div class="field" style="margin-bottom:14px">
+              <label style="font-weight:600">Quantity to Allocate</label>
+              <input id="approve-qty-input" name="quantity" type="number" step="any" required value="${defaultQty}" style="width:100%" />
+            </div>
+          `}
+        </form>
+      `,
+      footerHtml: `
+        <button class="btn" id="cancel-appr-btn">Cancel</button>
+        ${batches.length > 0 ? `<button class="btn btn-primary" id="approve-save-btn">Approve Batch &amp; Resume Run</button>` : ""}
+      `,
       onMount: () => {
-        document.getElementById("cancel-btn").onclick = closeModal;
-        document.getElementById("save-btn").onclick = async () => {
-          const data = formToObject(document.getElementById("approve-sub-form"));
-          data.quantity = parseFloat(data.quantity);
-          try {
-            await Api.post(`/v1/runs/${run.id}/material-substitution/approve`, data);
-            toast("Substitution approved -- run resumed.", "success"); closeModal(); App.route();
-          } catch (err) { notifyError(err); }
+        document.getElementById("cancel-appr-btn").onclick = closeModal;
+        const sel = document.getElementById("sub-batch-select");
+        const saveBtn = document.getElementById("approve-save-btn");
+        const qtyInput = document.getElementById("approve-qty-input");
+
+        const updatePreview = () => {
+          if (!sel) return;
+          const opt = sel.selectedOptions[0];
+          if (!opt) return;
+          document.getElementById("prev-lot").textContent = opt.dataset.lot || "-";
+          document.getElementById("prev-mat").textContent = opt.dataset.mat || "-";
+          document.getElementById("prev-loc").textContent = opt.dataset.loc || "-";
+          document.getElementById("prev-avail").textContent = fmtNum(opt.dataset.avail || 0);
+          document.getElementById("prev-exp").textContent = opt.dataset.exp || "-";
         };
+
+        if (sel) {
+          sel.addEventListener("change", updatePreview);
+          updatePreview();
+        }
+
+        if (saveBtn) {
+          saveBtn.onclick = async () => {
+            const batchId = sel.value;
+            const qty = parseFloat(qtyInput.value);
+            if (!batchId || isNaN(qty) || qty <= 0) {
+              toast("Please select a batch and enter a valid quantity.", "error");
+              return;
+            }
+
+            saveBtn.disabled = true;
+            saveBtn.textContent = "Approving...";
+
+            try {
+              if (fullRun.status !== "MATERIAL_SUBSTITUTION_PENDING") {
+                const selectedBatch = batches.find((b) => b.id === batchId);
+                const matId = selectedBatch ? (selectedBatch.materialId || selectedBatch.material_id) : (preselectedMaterialId || (fullRun.consumptions && fullRun.consumptions[0] ? (fullRun.consumptions[0].materialId || fullRun.consumptions[0].material_id) : null));
+                if (matId) {
+                  await Api.post(`/v1/runs/${fullRun.id}/material-substitution/request`, {
+                    materialId: matId,
+                    remainingQuantity: qty,
+                  }).catch(() => {});
+                }
+              }
+
+              await Api.post(`/v1/runs/${fullRun.id}/material-substitution/approve`, {
+                substituteBatchId: batchId,
+                quantity: qty,
+              });
+
+              toast("Substitution approved -- substitute lot reserved and run resumed.", "success");
+              closeModal();
+              App.route();
+            } catch (err) {
+              notifyError(err);
+              saveBtn.disabled = false;
+              saveBtn.textContent = "Approve Batch & Resume Run";
+            }
+          };
+        }
       },
     });
   },
