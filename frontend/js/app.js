@@ -39,6 +39,19 @@ const Theme = {
   },
 };
 
+const SECTION_ICONS = {
+  "overview": `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>`,
+  "users-roles": `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>`,
+  "production": `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"></polygon><path d="M12 2v20"></path></svg>`,
+  "resources": `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="8" rx="2" ry="2"></rect><rect x="2" y="14" width="20" height="8" rx="2" ry="2"></rect><line x1="6" y1="6" x2="6.01" y2="6"></line><line x1="6" y1="18" x2="6.01" y2="18"></line></svg>`,
+  "quality": `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>`,
+  "monitoring": `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>`,
+  "traceability": `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"></circle><circle cx="6" cy="12" r="3"></circle><circle cx="18" cy="19" r="3"></circle><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line></svg>`,
+  "maintenance": `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"></path></svg>`,
+  "reports": `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg>`,
+  "governance": `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>`,
+};
+
 const NAV_ICONS = {
   "dashboard": `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>`,
   "users": `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>`,
@@ -210,48 +223,48 @@ const App = {
   },
 
   NAV: [
-    { group: "Overview", items: [
+    { id: "overview", group: "Overview", items: [
       { label: "Dashboard", route: "dashboard" },
     ]},
-    { group: "Users & Roles", perm: ["MANAGE_USERS", "MANAGE_ROLES"], items: [
+    { id: "users-roles", group: "Users & Roles", perm: ["MANAGE_USERS", "MANAGE_ROLES"], items: [
       { label: "Users", route: "users", perm: ["MANAGE_USERS"] },
       { label: "Roles & Permissions", route: "roles", perm: ["MANAGE_ROLES"] },
     ]},
-    { group: "Production", perm: ["CREATE_ORDERS", "VIEW_ORDERS", "ALLOCATE_RESOURCES", "EXECUTE_PRODUCTION", "VIEW_PRODUCTION"], items: [
+    { id: "production", group: "Production", perm: ["CREATE_ORDERS", "VIEW_ORDERS", "ALLOCATE_RESOURCES", "EXECUTE_PRODUCTION", "VIEW_PRODUCTION"], items: [
       { label: "Orders", route: "orders" },
       { label: "Production Runs", route: "runs" },
       { label: "Scheduling", route: "scheduling", perm: ["ALLOCATE_RESOURCES"] },
       { label: "Planning", route: "planning", perm: ["MANAGE_PROCESSES", "VIEW_PROCESSES"] },
     ]},
-    { group: "Resources", items: [
+    { id: "resources", group: "Resources", items: [
       { label: "Machines", route: "machines" },
       { label: "Operators", route: "operators" },
       { label: "Materials & Batches", route: "materials" },
       { label: "Suppliers", route: "suppliers" },
     ]},
-    { group: "Quality", perm: ["INSPECT_BATCH", "VIEW_QUALITY", "CREATE_DEFECT", "REPORT_QUALITY_DEFECT", "CREATE_HOLD", "REQUEST_HOLD", "CREATE_NCR"], items: [
+    { id: "quality", group: "Quality", perm: ["INSPECT_BATCH", "VIEW_QUALITY", "CREATE_DEFECT", "REPORT_QUALITY_DEFECT", "CREATE_HOLD", "REQUEST_HOLD", "CREATE_NCR"], items: [
       { label: "Inspections", route: "inspections" },
       { label: "Defects", route: "defects" },
       { label: "Quality Holds", route: "holds" },
       { label: "NCR / Corrective Action", route: "ncr" },
     ]},
-    { group: "Monitoring", items: [
+    { id: "monitoring", group: "Monitoring", items: [
       { label: "Live Production", route: "live" },
       { label: "Alerts", route: "alerts" },
       { label: "Risks", route: "risks", perm: ["VIEW_RISK"] },
       { label: "Incidents", route: "incidents", perm: ["MANAGE_INCIDENTS", "REPORT_INCIDENTS"] },
       { label: "Overrides", route: "overrides", perm: ["CREATE_OVERRIDE", "APPROVE_OVERRIDE"] },
     ]},
-    { group: "Traceability", perm: ["VIEW_TRACEABILITY_ALL", "VIEW_TRACEABILITY_LIMITED"], items: [
+    { id: "traceability", group: "Traceability", perm: ["VIEW_TRACEABILITY_ALL", "VIEW_TRACEABILITY_LIMITED"], items: [
       { label: "Explorer", route: "traceability" },
     ]},
-    { group: "Maintenance", perm: ["MANAGE_MAINTENANCE", "VIEW_MAINTENANCE", "REPORT_MAINTENANCE", "MANAGE_MACHINES"], items: [
+    { id: "maintenance", group: "Maintenance", perm: ["MANAGE_MAINTENANCE", "VIEW_MAINTENANCE", "REPORT_MAINTENANCE", "MANAGE_MACHINES"], items: [
       { label: "Maintenance Records", route: "maintenance" },
     ]},
-    { group: "Reports", perm: ["VIEW_REPORTS"], items: [
+    { id: "reports", group: "Reports", perm: ["VIEW_REPORTS"], items: [
       { label: "Reports", route: "reports" },
     ]},
-    { group: "Governance", items: [
+    { id: "governance", group: "Governance", items: [
       { label: "Audit Logs", route: "audit-logs" },
       { label: "System Configuration", route: "settings", perm: ["MANAGE_SYSTEM_SETTINGS"] },
     ]},
@@ -259,25 +272,56 @@ const App = {
 
   renderNav() {
     const sidebar = document.getElementById("sidebar");
-    let html = "";
+    let html = `<div style="padding: 4px 10px 10px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px; color: #64748b;">Navigation</div>`;
     for (const group of this.NAV) {
       if (group.perm && !Auth.hasPerm(...group.perm)) continue;
-      const items = group.items.filter((it) => !it.perm || Auth.hasPerm(...it.perm));
-      if (items.length === 0) continue;
-      html += `<div class="sidebar-group"><div class="sidebar-group-title">${esc(group.group)}</div>`;
-      for (const item of items) {
-        const icon = NAV_ICONS[item.route] || "";
-        html += `<a class="sidebar-link" data-route="${item.route}" href="#/${item.route}">${icon}<span>${esc(item.label)}</span></a>`;
-      }
-      html += `</div>`;
+      const accessibleItems = group.items.filter((it) => !it.perm || Auth.hasPerm(...it.perm));
+      if (accessibleItems.length === 0) continue;
+      const firstRoute = accessibleItems[0].route;
+      const icon = SECTION_ICONS[group.id] || "";
+      const countBadge = accessibleItems.length > 1 ? `<span class="sidebar-section-badge">${accessibleItems.length}</span>` : "";
+
+      html += `
+        <a class="sidebar-section-link" data-section-id="${group.id}" href="#/${firstRoute}">
+          <div class="sidebar-section-left">
+            <span class="sidebar-section-icon">${icon}</span>
+            <span>${esc(group.group)}</span>
+          </div>
+          ${countBadge}
+        </a>`;
     }
     sidebar.innerHTML = html;
-    sidebar.querySelectorAll(".sidebar-link").forEach((a) => {
-      a.addEventListener("click", () => {
-        sidebar.querySelectorAll(".sidebar-link").forEach((x) => x.classList.remove("active"));
-        a.classList.add("active");
-      });
-    });
+  },
+
+  renderSubnav(group, activeRoute) {
+    const subnavEl = document.getElementById("section-subnav");
+    if (!subnavEl) return;
+
+    if (!group) {
+      subnavEl.hidden = true;
+      return;
+    }
+
+    const accessibleItems = group.items.filter((it) => !it.perm || Auth.hasPerm(...it.perm));
+
+    subnavEl.hidden = false;
+    const iconEl = document.getElementById("section-subnav-icon");
+    if (iconEl) iconEl.innerHTML = SECTION_ICONS[group.id] || "";
+    const titleEl = document.getElementById("section-subnav-title");
+    if (titleEl) titleEl.textContent = group.group;
+
+    const tabsContainer = document.getElementById("section-subnav-tabs");
+    if (tabsContainer) {
+      tabsContainer.innerHTML = accessibleItems.map((item) => {
+        const isActive = item.route === activeRoute;
+        const icon = NAV_ICONS[item.route] || "";
+        return `
+          <a class="subnav-tab-item ${isActive ? "active" : ""}" data-subroute="${item.route}" href="#/${item.route}">
+            ${icon}
+            <span>${esc(item.label)}</span>
+          </a>`;
+      }).join("");
+    }
   },
 
   ROUTES: {
@@ -311,7 +355,28 @@ const App = {
   route() {
     const hash = window.location.hash.replace(/^#\//, "") || "dashboard";
     const [base] = hash.split("?");
-    document.querySelectorAll(".sidebar-link").forEach((a) => a.classList.toggle("active", a.dataset.route === base));
+
+    // 1. Identify which section group this route belongs to
+    let currentGroup = null;
+    for (const group of this.NAV) {
+      if (group.perm && !Auth.hasPerm(...group.perm)) continue;
+      const accessibleItems = group.items.filter((it) => !it.perm || Auth.hasPerm(...it.perm));
+      const match = accessibleItems.find((it) => it.route === base);
+      if (match) {
+        currentGroup = group;
+        break;
+      }
+    }
+
+    // 2. Update sidebar section link active state
+    document.querySelectorAll(".sidebar-section-link").forEach((a) => {
+      a.classList.toggle("active", currentGroup && a.dataset.sectionId === currentGroup.id);
+    });
+
+    // 3. Render and update the top sub-navbar
+    this.renderSubnav(currentGroup, base);
+
+    // 4. Dispatch view handler
     const handler = this.ROUTES[base];
     const content = document.getElementById("content");
     if (!handler) {

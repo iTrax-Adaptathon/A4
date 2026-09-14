@@ -186,7 +186,18 @@
 
     <div class="app-body">
       <nav id="sidebar" class="sidebar"></nav>
-      <main id="content" class="content"></main>
+      <div class="main-wrapper">
+        <div id="section-subnav" class="section-subnav" hidden>
+          <div class="section-subnav-inner">
+            <div class="section-subnav-left">
+              <span class="section-subnav-icon" id="section-subnav-icon"></span>
+              <span class="section-subnav-title" id="section-subnav-title"></span>
+            </div>
+            <nav class="section-subnav-tabs" id="section-subnav-tabs" aria-label="Section navigation"></nav>
+          </div>
+        </div>
+        <main id="content" class="content"></main>
+      </div>
     </div>
   </div>
 
