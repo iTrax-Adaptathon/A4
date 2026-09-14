@@ -1,0 +1,362 @@
+/* ---------------- Roles & Permissions Management View ---------------- */
+
+.roles-view-container {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+/* Role Selector Navigation Tabs */
+.role-tabs-bar {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 8px;
+}
+
+.role-tab-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 18px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius) var(--radius) 0 0;
+  color: var(--text-secondary);
+  font-family: inherit;
+  font-size: 13.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.16s ease;
+  white-space: nowrap;
+  border-bottom: 2px solid transparent;
+}
+
+.role-tab-btn:hover {
+  color: var(--text);
+  background: var(--surface-raised);
+  border-color: var(--border-focus);
+}
+
+.role-tab-btn.active {
+  color: var(--primary);
+  background: var(--surface);
+  border-bottom: 2px solid var(--primary);
+  font-weight: 700;
+  box-shadow: 0 -2px 6px rgba(0, 0, 0, 0.02);
+}
+
+.role-tab-badge {
+  font-size: 11px;
+  padding: 1px 7px;
+  border-radius: var(--radius-full);
+  background: var(--surface-raised);
+  color: var(--text-muted);
+  border: 1px solid var(--border);
+}
+
+.role-tab-btn.active .role-tab-badge {
+  background: var(--primary-light);
+  color: var(--primary);
+  border-color: rgba(37, 99, 235, 0.2);
+}
+
+/* Role Panel */
+.role-panel {
+  display: none;
+  flex-direction: column;
+  gap: 20px;
+  animation: panel-fade 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.role-panel.active {
+  display: flex;
+}
+
+@keyframes panel-fade {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Role Overview Card */
+.role-overview-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 20px 24px;
+  box-shadow: var(--shadow-sm);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.role-meta-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.role-title-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.role-title-line {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.role-title-line h3 {
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--text);
+  margin: 0;
+}
+
+.role-description {
+  font-size: 13.5px;
+  color: var(--text-muted);
+  margin: 0;
+  max-width: 760px;
+  line-height: 1.5;
+}
+
+/* Action & Filter Toolbar */
+.role-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 14px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border-subtle);
+}
+
+.role-filter-box {
+  position: relative;
+  flex: 1;
+  max-width: 380px;
+}
+
+.role-filter-box input {
+  width: 100%;
+  padding: 8px 12px 8px 34px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  font-size: 13px;
+  background: var(--surface-raised);
+  color: var(--text);
+  transition: all 0.15s ease;
+}
+
+.role-filter-box input:focus {
+  outline: none;
+  border-color: var(--primary);
+  background: var(--surface);
+  box-shadow: 0 0 0 3px var(--primary-glow);
+}
+
+.role-filter-box svg {
+  position: absolute;
+  left: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--text-muted);
+  pointer-events: none;
+}
+
+.role-actions-group {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+/* Permission Categories Grid */
+.perm-categories-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
+  gap: 20px;
+}
+
+@media (max-width: 768px) {
+  .perm-categories-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Category Card */
+.perm-category-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  transition: all 0.18s ease;
+}
+
+.perm-category-card:hover {
+  border-color: var(--border-focus);
+  box-shadow: var(--shadow);
+}
+
+.perm-category-header {
+  padding: 14px 18px;
+  background: var(--surface-raised);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.perm-category-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 700;
+  font-size: 13.5px;
+  color: var(--text);
+}
+
+.perm-category-title svg {
+  color: var(--primary);
+  flex-shrink: 0;
+}
+
+.perm-category-controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.cat-count-badge {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: var(--radius-full);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+}
+
+.cat-toggle-link {
+  font-size: 11.5px;
+  color: var(--primary);
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-weight: 600;
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+  transition: all 0.15s ease;
+}
+
+.cat-toggle-link:hover {
+  background: var(--primary-light);
+}
+
+/* Permission Item Rows */
+.perm-items-list {
+  display: flex;
+  flex-direction: column;
+  padding: 8px;
+  gap: 4px;
+}
+
+.perm-item-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: all 0.14s ease;
+  border: 1px solid transparent;
+  user-select: none;
+}
+
+.perm-item-row:hover {
+  background: var(--surface-hover);
+  border-color: var(--border-subtle);
+}
+
+.perm-item-row.is-checked {
+  background: var(--primary-light);
+  border-color: rgba(37, 99, 235, 0.15);
+}
+
+:root[data-theme="dark"] .perm-item-row.is-checked {
+  background: rgba(59, 130, 246, 0.12);
+  border-color: rgba(59, 130, 246, 0.25);
+}
+
+/* Styled Checkbox */
+.perm-checkbox-wrap {
+  display: flex;
+  align-items: center;
+  margin-top: 2px;
+  flex-shrink: 0;
+}
+
+.perm-checkbox-wrap input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--primary);
+  cursor: pointer;
+  border-radius: 4px;
+}
+
+/* Text & Code Info */
+.perm-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+}
+
+.perm-code-line {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.perm-code {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text);
+  letter-spacing: -0.01em;
+}
+
+.perm-item-row.is-checked .perm-code {
+  color: var(--primary);
+  font-weight: 700;
+}
+
+.perm-scope-pill {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 1px 5px;
+  border-radius: 4px;
+  background: var(--surface-raised);
+  color: var(--text-muted);
+  border: 1px solid var(--border);
+  text-transform: uppercase;
+}
+
+.perm-desc {
+  font-size: 12px;
+  color: var(--text-secondary);
+  line-height: 1.4;
+}
